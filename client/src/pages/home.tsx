@@ -41,7 +41,7 @@ export default function Home() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4">
+    <div className="min-h-screen bg-gradient-to-br from-slate-800 via-slate-700 to-slate-800 p-4">
       <div className="max-w-7xl mx-auto space-y-4">
         {/* Main toolbar */}
         <div className="flex items-center gap-4">
@@ -59,7 +59,7 @@ export default function Home() {
             }}
             disabled={!url || !selectedDevice}
             variant="default"
-            className="w-[100px] bg-blue-600 hover:bg-blue-700"
+            className="w-[100px] bg-blue-500 hover:bg-blue-600 text-white font-semibold"
           >
             Test
           </Button>
@@ -78,7 +78,7 @@ export default function Home() {
                   handleDeviceSelect(foundDevice, foundDevice.screenSizes[0]);
                 }
               }}
-              className="text-slate-300 hover:text-slate-100"
+              className="text-slate-200 hover:text-white"
             >
               {device.label}
             </Button>
