@@ -51,7 +51,7 @@ export default function Home() {
           <div className="w-[280px]">
             <DeviceSelector onDeviceSelect={handleDeviceSelect} />
           </div>
-          <Button 
+          <Button
             onClick={() => {
               if (url && selectedDevice) {
                 console.log("Testing with URL:", url, "and Device:", selectedDevice);
@@ -86,7 +86,7 @@ export default function Home() {
 
         {/* Preview area */}
         <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl border border-slate-700">
-          <DevicePreview 
+          <DevicePreview
             url={url}
             device={selectedDevice}
             screenSize={selectedScreenSize}
