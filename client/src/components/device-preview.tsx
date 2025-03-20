@@ -2,6 +2,10 @@ import React from 'react';
 import { Device, ScreenSize } from '@shared/schema';
 import { Card } from '@/components/ui/card';
 import { motion } from 'framer-motion';
+import { Button } from '@/components/ui/button';
+import { Camera } from 'lucide-react';
+import html2canvas from 'html2canvas';
+import { useToast } from '@/hooks/use-toast';
 
 interface DevicePreviewProps {
   url: string;
@@ -13,6 +17,7 @@ export function DevicePreview({ url, device, screenSize }: DevicePreviewProps) {
   const containerRef = React.useRef<HTMLDivElement>(null);
   const iframeRef = React.useRef<HTMLIFrameElement>(null);
   const [scale, setScale] = React.useState(1);
+  const { toast } = useToast();
 
   const updateScale = React.useCallback(() => {
     if (containerRef.current && screenSize) {
@@ -38,6 +43,32 @@ export function DevicePreview({ url, device, screenSize }: DevicePreviewProps) {
     }
   }, [url, screenSize]);
 
+  const captureScreenshot = async () => {
+    if (!containerRef.current || !device) return;
+
+    try {
+      const canvas = await html2canvas(containerRef.current.querySelector('.preview-container') as HTMLElement);
+      const image = canvas.toDataURL('image/png');
+
+      // Create download link
+      const link = document.createElement('a');
+      link.download = `${device.name.toLowerCase().replace(/\s+/g, '-')}-screenshot.png`;
+      link.href = image;
+      link.click();
+
+      toast({
+        title: "Screenshot captured!",
+        description: "Your screenshot has been downloaded.",
+      });
+    } catch (error) {
+      toast({
+        title: "Screenshot failed",
+        description: "Failed to capture screenshot. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
   if (!url || !device || !screenSize) {
     return (
       <Card className="w-full h-[600px] flex items-center justify-center text-slate-400">
@@ -52,6 +83,15 @@ export function DevicePreview({ url, device, screenSize }: DevicePreviewProps) {
         <div className="text-sm font-medium text-slate-200">
           {device.name} - {screenSize.width}x{screenSize.height}
         </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={captureScreenshot}
+          className="gap-2"
+        >
+          <Camera className="h-4 w-4" />
+          Capture
+        </Button>
       </div>
       <div 
         ref={containerRef}
@@ -59,6 +99,7 @@ export function DevicePreview({ url, device, screenSize }: DevicePreviewProps) {
         style={{ height: '600px' }}
       >
         <motion.div
+          className="preview-container"
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.2 }}
