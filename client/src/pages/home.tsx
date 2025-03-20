@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
+import { AITester } from '@/components/ai-tester'; // Import AITester
+import { CSSFixPreview } from '@/components/css-fix-preview'; //Import CSSFixPreview
 
 const QUICK_DEVICES = [
   { id: 'iphone-15-pro-max', label: 'iPhone 15 Pro Max' },
@@ -75,8 +77,8 @@ export default function Home() {
         setDevices(data);
 
         if (data.length > 0) {
-          const deviceToSelect = deviceParam ? 
-            data.find(d => d.id === deviceParam) : 
+          const deviceToSelect = deviceParam ?
+            data.find(d => d.id === deviceParam) :
             data[0];
 
           if (deviceToSelect) {
@@ -99,7 +101,7 @@ export default function Home() {
             <URLInput onValidURL={setUrl} />
           </div>
           <div className="w-[350px]">
-            <DeviceSelector 
+            <DeviceSelector
               onDeviceSelect={handleDeviceSelect}
               selectedDeviceId={selectedDevice?.id}
             />
@@ -149,20 +151,20 @@ export default function Home() {
             <Tabs defaultValue="analysis" className="w-full">
               <div className="px-4 pt-4">
                 <TabsList className="w-full grid grid-cols-3 gap-4 bg-transparent">
-                  <TabsTrigger 
-                    value="analysis" 
+                  <TabsTrigger
+                    value="analysis"
                     className="data-[state=active]:bg-purple-600 data-[state=active]:text-white px-8 rounded-lg transition-all"
                   >
                     Analysis
                   </TabsTrigger>
-                  <TabsTrigger 
-                    value="css" 
+                  <TabsTrigger
+                    value="css"
                     className="data-[state=active]:bg-purple-600 data-[state=active]:text-white px-8 rounded-lg transition-all"
                   >
                     CSS Fixes
                   </TabsTrigger>
-                  <TabsTrigger 
-                    value="debug" 
+                  <TabsTrigger
+                    value="debug"
                     className="data-[state=active]:bg-purple-600 data-[state=active]:text-white px-8 rounded-lg transition-all"
                   >
                     Debug
@@ -171,10 +173,27 @@ export default function Home() {
               </div>
               <div className="p-4">
                 <TabsContent value="analysis" className="mt-0 space-y-4">
-                  {/* AI Analysis content */}
+                  <AITester
+                    url={url}
+                    device={{
+                      width: selectedScreenSize?.width || 0,
+                      height: selectedScreenSize?.height || 0,
+                      type: selectedDevice?.type || 'desktop'
+                    }}
+                    onAnalysisComplete={(results) => {
+                      // Handle analysis results
+                    }}
+                  />
                 </TabsContent>
                 <TabsContent value="css" className="mt-0 space-y-4">
-                  {/* CSS Fixes content */}
+                  <CSSFixPreview
+                    url={url}
+                    device={{
+                      width: selectedScreenSize?.width || 0,
+                      height: selectedScreenSize?.height || 0
+                    }}
+                    issues={[]} // We'll need to pass the actual issues here
+                  />
                 </TabsContent>
                 <TabsContent value="debug" className="mt-0 space-y-4">
                   {/* Debug information */}

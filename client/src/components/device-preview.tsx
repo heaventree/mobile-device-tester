@@ -24,10 +24,16 @@ export function DevicePreview({ url, device, screenSize }: DevicePreviewProps) {
 
   const updateScale = React.useCallback(() => {
     if (containerRef.current && screenSize) {
-      const containerWidth = 600; // Increased for better landscape support
-      const containerHeight = 800; // Increased max height
-      const scaleX = containerWidth / screenSize.width;
-      const scaleY = containerHeight / screenSize.height;
+      const containerWidth = containerRef.current.clientWidth - 48; // Account for padding
+      const containerHeight = containerRef.current.clientHeight - 48;
+      const isLandscape = screenSize.width > screenSize.height;
+
+      // Adjust available space based on orientation
+      const availableWidth = isLandscape ? containerWidth : containerWidth * 0.8;
+      const availableHeight = isLandscape ? containerHeight * 0.8 : containerHeight;
+
+      const scaleX = availableWidth / screenSize.width;
+      const scaleY = availableHeight / screenSize.height;
       setScale(Math.min(scaleX, scaleY, 1));
     }
   }, [screenSize]);
@@ -69,21 +75,19 @@ export function DevicePreview({ url, device, screenSize }: DevicePreviewProps) {
   };
 
   const getDeviceStyle = () => {
-    if (!device) return {};
+    if (!device || !screenSize) return {};
 
     const isPhone = device.type === 'phone';
     const isTablet = device.type === 'tablet';
-    const isLandscape = screenSize && screenSize.width > screenSize.height;
+    const isLandscape = screenSize.width > screenSize.height;
 
     return {
-      borderRadius: isPhone ? '2rem' : isTablet ? '1.5rem' : '0.5rem',
+      borderRadius: isPhone ? '1.5rem' : isTablet ? '1rem' : '0.5rem',
       boxShadow: isPhone || isTablet ? 
-        '0 0 0 12px rgba(0,0,0,0.2), 0 20px 40px rgba(0,0,0,0.4), inset 0 0 0 2px rgba(255,255,255,0.05)' : 
-        '0 10px 30px rgba(0,0,0,0.2)',
-      background: 'black',
-      padding: isPhone ? (isLandscape ? '0.75rem' : '1rem') : 
-               isTablet ? (isLandscape ? '0.75rem' : '1rem') : 
-               '0.5rem',
+        '0 0 0 8px rgba(0,0,0,0.2), 0 10px 20px rgba(0,0,0,0.2)' : 
+        '0 4px 12px rgba(0,0,0,0.1)',
+      background: '#000',
+      padding: isPhone ? '0.75rem' : isTablet ? '0.5rem' : '0.25rem',
       transition: 'all 0.3s ease',
     };
   };
@@ -100,7 +104,7 @@ export function DevicePreview({ url, device, screenSize }: DevicePreviewProps) {
     <Card className="bg-slate-800/50 backdrop-blur-sm border-slate-700 overflow-hidden">
       <div className="p-4 border-b border-slate-700 flex items-center justify-between">
         <div className="text-sm font-medium text-slate-200">
-          {device.name} - {screenSize?.width}x{screenSize?.height}
+          {device.name} - {screenSize.width}x{screenSize.height}
         </div>
         <div className="flex items-center gap-2">
           <Button
@@ -132,14 +136,14 @@ export function DevicePreview({ url, device, screenSize }: DevicePreviewProps) {
 
       <div 
         ref={containerRef}
-        className="relative flex items-center justify-center bg-black p-6"
-        style={{ minHeight: '400px', maxHeight: '800px' }}
+        className="relative flex items-center justify-center bg-slate-900/50"
+        style={{ height: '500px' }}
       >
         <motion.div
           className={cn(
             "preview-container relative bg-white",
-            device.type === 'phone' && "rounded-[2rem]",
-            device.type === 'tablet' && "rounded-[1.5rem]"
+            device.type === 'phone' && "rounded-[1.5rem]",
+            device.type === 'tablet' && "rounded-[1rem]"
           )}
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -148,10 +152,8 @@ export function DevicePreview({ url, device, screenSize }: DevicePreviewProps) {
             ...getDeviceStyle(),
             transform: `scale(${scale})`,
             transformOrigin: 'center',
-            width: `${screenSize?.width}px`,
-            height: `${screenSize?.height}px`,
-            maxWidth: '100%',
-            maxHeight: '100%'
+            width: `${screenSize.width}px`,
+            height: `${screenSize.height}px`,
           }}
         >
           <iframe
