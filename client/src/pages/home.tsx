@@ -59,7 +59,7 @@ export default function Home() {
             }}
             disabled={!url || !selectedDevice}
             variant="default"
-            className="w-[100px] bg-[#2563eb] hover:bg-[#1d4ed8] text-white font-semibold"
+            className="w-[100px] bg-[#3b82f6] hover:bg-[#60a5fa] text-white font-semibold"
           >
             Test
           </Button>
