@@ -21,13 +21,15 @@ interface AITesterProps {
 }
 
 export function AITester({ url, device, onAnalysisComplete }: AITesterProps) {
-  const [isAnalyzing, setIsAnalyzing] = React.useState(false);
+  const [isQuickAnalyzing, setIsQuickAnalyzing] = React.useState(false);
+  const [isAiAnalyzing, setIsAiAnalyzing] = React.useState(false);
   const [results, setResults] = React.useState<TestResult[]>([]);
   const [aiAnalysis, setAiAnalysis] = React.useState<string | null>(null);
   const [error, setError] = React.useState<string | null>(null);
 
   const runAnalysis = async () => {
-    setIsAnalyzing(true);
+    setIsQuickAnalyzing(true);
+    setIsAiAnalyzing(false);
     setResults([]);
     setAiAnalysis(null);
     setError(null);
@@ -109,13 +111,15 @@ export function AITester({ url, device, onAnalysisComplete }: AITesterProps) {
         });
       }
 
-      // Set initial results and trigger callback
+      // Set initial results immediately
       setResults(testResults);
       onAnalysisComplete?.(testResults);
+      setIsQuickAnalyzing(false);
 
       // Only proceed with AI analysis if we found issues
       if (testResults.length > 0) {
         try {
+          setIsAiAnalyzing(true);
           const response = await apiRequest('POST', '/api/analyze', {
             url,
             deviceInfo: {
@@ -134,13 +138,9 @@ export function AITester({ url, device, onAnalysisComplete }: AITesterProps) {
         } catch (error) {
           console.error('AI Analysis error:', error);
           setError(error instanceof Error ? error.message : 'AI analysis failed');
+        } finally {
+          setIsAiAnalyzing(false);
         }
-      } else {
-        setResults([{
-          type: 'success',
-          title: 'No Issues Found',
-          description: 'The page appears to be well-optimized for this device size.'
-        }]);
       }
     } catch (error) {
       console.error('Analysis error:', error);
@@ -151,7 +151,8 @@ export function AITester({ url, device, onAnalysisComplete }: AITesterProps) {
         description: error instanceof Error ? error.message : 'Failed to analyze the page. Please try again.'
       }]);
     } finally {
-      setIsAnalyzing(false);
+      setIsQuickAnalyzing(false);
+      setIsAiAnalyzing(false);
     }
   };
 
@@ -159,14 +160,19 @@ export function AITester({ url, device, onAnalysisComplete }: AITesterProps) {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-medium">AI Responsive Testing</h3>
-        <Button 
+        <Button
           onClick={runAnalysis}
-          disabled={isAnalyzing}
+          disabled={isQuickAnalyzing || isAiAnalyzing}
         >
-          {isAnalyzing ? (
+          {isQuickAnalyzing ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Analyzing...
+              Quick Analysis...
+            </>
+          ) : isAiAnalyzing ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              AI Analysis...
             </>
           ) : (
             'Run Analysis'
@@ -174,7 +180,7 @@ export function AITester({ url, device, onAnalysisComplete }: AITesterProps) {
         </Button>
       </div>
 
-      {/* Results */}
+      {/* Results section */}
       <div className="space-y-2">
         {results.map((result, index) => (
           <Alert key={index} variant={result.type === 'error' ? 'destructive' : 'default'}>
@@ -198,19 +204,32 @@ export function AITester({ url, device, onAnalysisComplete }: AITesterProps) {
         ))}
 
         {/* AI Analysis Section */}
-        {aiAnalysis && (
+        {(aiAnalysis || isAiAnalyzing) && (
           <Collapsible>
             <CollapsibleTrigger asChild>
               <Button variant="outline" className="w-full justify-between">
                 <span>View AI Recommendations</span>
-                <Code className="h-4 w-4" />
+                {isAiAnalyzing ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Code className="h-4 w-4" />
+                )}
               </Button>
             </CollapsibleTrigger>
             <CollapsibleContent>
               <Card className="mt-2 p-4">
-                <pre className="whitespace-pre-wrap text-sm">
-                  {aiAnalysis}
-                </pre>
+                {isAiAnalyzing ? (
+                  <div className="flex items-center justify-center py-4">
+                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                    <span className="ml-2 text-sm text-muted-foreground">
+                      Generating AI recommendations...
+                    </span>
+                  </div>
+                ) : (
+                  <pre className="whitespace-pre-wrap text-sm">
+                    {aiAnalysis}
+                  </pre>
+                )}
               </Card>
             </CollapsibleContent>
           </Collapsible>

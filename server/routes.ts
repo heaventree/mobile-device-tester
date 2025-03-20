@@ -140,7 +140,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // AI Analysis endpoint
   app.post("/api/analyze", async (req, res) => {
-    // Check if OpenAI API key is available
     if (!process.env.OPENAI_API_KEY) {
       return res.status(503).json({
         success: false,
@@ -158,49 +157,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const messages: ChatCompletionMessageParam[] = [
         {
           role: 'system',
-          content: `You are a responsive design expert analyzing websites. Focus on mobile-first design, accessibility, and user experience. Analyze the provided HTML content and issues for a ${data.deviceInfo.width}x${data.deviceInfo.height} screen.
-
-Your analysis should follow this structure:
-1. CRITICAL ISSUES (Issues that severely impact usability)
-   - Provide specific code fixes or CSS solutions
-   - Explain impact on user experience
-   - Rate severity (High/Medium/Low)
-
-2. ACCESSIBILITY CONCERNS
-   - WCAG compliance issues
-   - Touch target size problems
-   - Color contrast issues
-   - Screen reader compatibility
-
-3. RESPONSIVE DESIGN IMPROVEMENTS
-   - Viewport optimization
-   - Media query suggestions
-   - Flexbox/Grid layout recommendations
-   - Image optimization strategies
-
-4. PERFORMANCE OPTIMIZATION
-   - Resource loading
-   - Asset optimization
-   - Lazy loading implementation
-   - Browser compatibility fixes
-
-5. BEST PRACTICES CHECKLIST
-   - Mobile-first considerations
-   - Touch interaction improvements
-   - Layout hierarchy suggestions
-   - Content adaptability recommendations`
+          content: `Analyze responsive design issues and provide concise solutions. Focus on:
+1. Critical fixes (layout breaks, content overflow)
+2. Key accessibility problems
+3. Most impactful responsive design improvements
+Keep suggestions practical and focused.`
         },
         {
           role: 'user',
-          content: `
-URL: ${data.url}
+          content: `URL: ${data.url}
 Device: ${data.deviceInfo.width}x${data.deviceInfo.height}
-Device Type: ${data.deviceInfo.type}
+Type: ${data.deviceInfo.type}
 
-Initial issues found:
+Issues found:
 ${data.issues.map(issue => `- ${issue.type}: ${issue.description}`).join('\n')}
 
-Please provide a comprehensive analysis following the structure specified, with actionable recommendations and code examples where relevant.`
+Provide a brief, actionable analysis focusing on critical issues first.`
         }
       ];
 
@@ -208,7 +180,7 @@ Please provide a comprehensive analysis following the structure specified, with 
         model: "gpt-4",
         messages,
         temperature: 0.7,
-        max_tokens: 1000
+        max_tokens: 500 // Reduced from 1000 for faster response
       });
 
       const aiAnalysis = completion.choices[0].message.content;
@@ -221,7 +193,6 @@ Please provide a comprehensive analysis following the structure specified, with 
     } catch (error) {
       console.error('AI Analysis error:', error);
 
-      // Handle different types of errors
       if (error instanceof z.ZodError) {
         return res.status(400).json({
           success: false,
