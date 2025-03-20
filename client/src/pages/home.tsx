@@ -58,7 +58,7 @@ export default function Home() {
               }
             }}
             disabled={!url || !selectedDevice}
-            className="bg-[#795EFF] hover:bg-[#8B74FF] text-[#FFFFFF] font-semibold px-8 w-[100px] shadow-lg"
+            style={{ backgroundColor: '#795EFF',  color: '#FFFFFF', fontWeight: 'semibold', padding: '8px 16px', width: '100px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', hover: { backgroundColor: '#8B74FF' } }}
           >
             Test
           </Button>
@@ -77,7 +77,7 @@ export default function Home() {
                   handleDeviceSelect(foundDevice, foundDevice.screenSizes[0]);
                 }
               }}
-              className="text-slate-200 hover:text-white"
+              style={{ color: 'slategray', hover: { color: 'white' } }}
             >
               {device.label}
             </Button>
