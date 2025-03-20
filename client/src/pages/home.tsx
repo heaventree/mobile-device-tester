@@ -32,26 +32,22 @@ export default function Home() {
           </p>
         </div>
 
-        <div className="flex flex-col lg:flex-row gap-8">
-          <motion.div 
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-            className="w-full lg:w-1/3 space-y-6"
-          >
-            <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl p-6 shadow-xl border border-slate-700">
-              <URLInput onValidURL={setUrl} />
+        <div className="space-y-4">
+          <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl p-6 shadow-xl border border-slate-700">
+            <div className="flex flex-col md:flex-row gap-6">
+              <div className="flex-grow">
+                <URLInput onValidURL={setUrl} />
+              </div>
+              <div className="md:w-64">
+                <DeviceSelector onDeviceSelect={handleDeviceSelect} />
+              </div>
             </div>
-            <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl shadow-xl border border-slate-700">
-              <DeviceSelector onDeviceSelect={handleDeviceSelect} />
-            </div>
-          </motion.div>
+          </div>
 
           <motion.div 
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5, delay: 0.4 }}
-            className="w-full lg:w-2/3"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
           >
             <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl shadow-xl border border-slate-700">
               <DevicePreview 

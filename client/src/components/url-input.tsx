@@ -28,7 +28,7 @@ export function URLInput({ onValidURL }: URLInputProps) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="flex gap-2 w-full max-w-2xl">
+    <form onSubmit={handleSubmit} className="flex gap-2 w-full">
       <Input
         type="url"
         placeholder="Enter website URL (e.g. https://example.com)"
