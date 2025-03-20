@@ -12,44 +12,98 @@ export class MemStorage implements IStorage {
 
   constructor() {
     this.devices = new Map();
-    // Initialize with some default devices
     this.initializeDevices();
   }
 
   private initializeDevices() {
     const defaultDevices: Device[] = [
       {
-        id: 'iphone-14-pro',
-        name: 'iPhone 14 Pro',
+        id: 'iphone-15-pro-max',
+        name: 'iPhone 15 Pro Max',
+        type: 'phone',
+        manufacturer: 'Apple',
+        screenSizes: [
+          { width: 1290, height: 2796 },
+          { width: 430, height: 932 }
+        ],
+        osVersions: ['iOS 17']
+      },
+      {
+        id: 'iphone-15',
+        name: 'iPhone 15',
         type: 'phone',
         manufacturer: 'Apple',
         screenSizes: [
           { width: 1179, height: 2556 },
           { width: 390, height: 844 }
         ],
-        osVersions: ['iOS 16', 'iOS 17']
+        osVersions: ['iOS 17']
       },
       {
-        id: 'samsung-s23-ultra',
-        name: 'Samsung Galaxy S23 Ultra',
+        id: 'samsung-s24-ultra',
+        name: 'Samsung Galaxy S24 Ultra',
         type: 'phone',
         manufacturer: 'Samsung',
         screenSizes: [
-          { width: 1440, height: 3088 },
+          { width: 1440, height: 3120 },
           { width: 360, height: 780 }
         ],
-        osVersions: ['Android 13', 'Android 14']
+        osVersions: ['Android 14']
       },
       {
-        id: 'ipad-pro',
-        name: 'iPad Pro 12.9"',
+        id: 'pixel-8-pro',
+        name: 'Google Pixel 8 Pro',
+        type: 'phone',
+        manufacturer: 'Google',
+        screenSizes: [
+          { width: 1344, height: 2992 },
+          { width: 384, height: 854 }
+        ],
+        osVersions: ['Android 14']
+      },
+      {
+        id: 'ipad-pro-13',
+        name: 'iPad Pro 12.9" (6th gen)',
         type: 'tablet',
         manufacturer: 'Apple',
         screenSizes: [
           { width: 2048, height: 2732 },
           { width: 1024, height: 1366 }
         ],
-        osVersions: ['iPadOS 16', 'iPadOS 17']
+        osVersions: ['iPadOS 17']
+      },
+      {
+        id: 'samsung-tab-s9-ultra',
+        name: 'Samsung Galaxy Tab S9 Ultra',
+        type: 'tablet',
+        manufacturer: 'Samsung',
+        screenSizes: [
+          { width: 2960, height: 1848 },
+          { width: 1480, height: 924 }
+        ],
+        osVersions: ['Android 14']
+      },
+      {
+        id: 'macbook-pro-16',
+        name: 'MacBook Pro 16"',
+        type: 'laptop',
+        manufacturer: 'Apple',
+        screenSizes: [
+          { width: 3456, height: 2234 },
+          { width: 1728, height: 1117 }
+        ],
+        osVersions: ['macOS']
+      },
+      {
+        id: 'surface-laptop-5',
+        name: 'Surface Laptop 5 15"',
+        type: 'laptop',
+        manufacturer: 'Microsoft',
+        screenSizes: [
+          { width: 2496, height: 1664 },
+          { width: 1248, height: 832 }
+        ],
+        osVersions: ['Windows 11']
       }
     ];
 
