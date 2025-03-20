@@ -72,7 +72,10 @@ export default function Home() {
             <URLInput onValidURL={setUrl} />
           </div>
           <div className="w-[350px]">
-            <DeviceSelector onDeviceSelect={handleDeviceSelect} />
+            <DeviceSelector 
+              onDeviceSelect={handleDeviceSelect}
+              selectedDeviceId={selectedDevice?.id}
+            />
           </div>
           <Button
             onClick={handleTest}

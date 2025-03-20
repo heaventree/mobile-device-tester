@@ -14,24 +14,27 @@ import { Smartphone } from 'lucide-react';
 
 interface DeviceSelectorProps {
   onDeviceSelect: (device: Device, screenSize: ScreenSize) => void;
+  selectedDeviceId?: string;
 }
 
-export function DeviceSelector({ onDeviceSelect }: DeviceSelectorProps) {
+export function DeviceSelector({ onDeviceSelect, selectedDeviceId }: DeviceSelectorProps) {
   const { data: devices, isLoading } = useQuery<Device[]>({ 
     queryKey: ['/api/devices']
   });
 
-  const [selectedDevice, setSelectedDevice] = React.useState<Device | null>(null);
   const [isLandscape, setIsLandscape] = React.useState(false);
 
   React.useEffect(() => {
-    if (selectedDevice) {
-      const screenSize = selectedDevice.screenSizes.length > 1 ? 
-        selectedDevice.screenSizes[isLandscape ? 1 : 0] : 
-        selectedDevice.screenSizes[0];
-      onDeviceSelect(selectedDevice, screenSize);
+    if (selectedDeviceId && devices) {
+      const device = devices.find(d => d.id === selectedDeviceId);
+      if (device) {
+        const screenSize = device.screenSizes.length > 1 ? 
+          device.screenSizes[isLandscape ? 1 : 0] : 
+          device.screenSizes[0];
+        onDeviceSelect(device, screenSize);
+      }
     }
-  }, [selectedDevice, isLandscape, onDeviceSelect]);
+  }, [selectedDeviceId, devices, isLandscape, onDeviceSelect]);
 
   if (isLoading) {
     return <Skeleton className="w-full h-10" />;
@@ -42,17 +45,21 @@ export function DeviceSelector({ onDeviceSelect }: DeviceSelectorProps) {
   }
 
   // Check if the device type supports orientation changes
+  const selectedDevice = devices.find(d => d.id === selectedDeviceId);
   const showOrientationToggle = selectedDevice?.type === 'phone' || selectedDevice?.type === 'tablet';
 
   return (
     <div className="flex items-center gap-2">
-      <Select onValueChange={(deviceId) => {
-        const device = devices.find(d => d.id === deviceId);
-        if (device) {
-          setSelectedDevice(device);
-          setIsLandscape(false);
-        }
-      }}>
+      <Select 
+        value={selectedDeviceId} 
+        onValueChange={(deviceId) => {
+          const device = devices.find(d => d.id === deviceId);
+          if (device) {
+            setIsLandscape(false);
+            onDeviceSelect(device, device.screenSizes[0]);
+          }
+        }}
+      >
         <SelectTrigger className="w-full">
           <SelectValue placeholder="Choose a device" />
         </SelectTrigger>
