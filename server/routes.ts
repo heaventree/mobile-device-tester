@@ -28,6 +28,11 @@ const aiAnalysisSchema = z.object({
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Validate OpenAI API Key
+  if (!process.env.OPENAI_API_KEY) {
+    console.error('OpenAI API key is missing. AI analysis features will be disabled.');
+  }
+
   // Get all devices
   app.get("/api/devices", async (_req, res) => {
     try {
@@ -100,6 +105,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // AI Analysis endpoint
   app.post("/api/analyze", async (req, res) => {
+    // Check if OpenAI API key is available
+    if (!process.env.OPENAI_API_KEY) {
+      return res.status(503).json({
+        success: false,
+        message: 'AI analysis is currently unavailable. OpenAI API key is not configured.'
+      });
+    }
+
     try {
       const data = aiAnalysisSchema.parse(req.body);
 
@@ -145,6 +158,24 @@ Please analyze these issues and provide:
       });
     } catch (error) {
       console.error('AI Analysis error:', error);
+
+      // Handle different types of errors
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid analysis request format',
+          errors: error.errors
+        });
+      }
+
+      if (error instanceof OpenAI.APIError) {
+        return res.status(error.status || 500).json({
+          success: false,
+          message: 'OpenAI API error',
+          error: error.message
+        });
+      }
+
       res.status(500).json({ 
         success: false, 
         message: 'Failed to analyze page',

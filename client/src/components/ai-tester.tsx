@@ -24,7 +24,6 @@ export function AITester({ url, device, onAnalysisComplete }: AITesterProps) {
   const [results, setResults] = React.useState<TestResult[]>([]);
   const [aiAnalysis, setAiAnalysis] = React.useState<string | null>(null);
   const [isAiAnalysisOpen, setIsAiAnalysisOpen] = React.useState(false);
-  const iframeRef = React.useRef<HTMLIFrameElement>(null);
   const [error, setError] = React.useState<string | null>(null);
 
   const runAnalysis = async () => {
@@ -153,11 +152,13 @@ export function AITester({ url, device, onAnalysisComplete }: AITesterProps) {
           });
 
           const data = await response.json();
-          if (data.success) {
-            setAiAnalysis(data.analysis);
+          if (!data.success) {
+            throw new Error(data.message || 'AI analysis failed');
           }
+          setAiAnalysis(data.analysis);
         } catch (error) {
           console.error('AI Analysis error:', error);
+          setError(error instanceof Error ? error.message : 'AI analysis failed');
           // Don't fail the whole analysis if AI part fails
         }
       } else {
