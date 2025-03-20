@@ -5,6 +5,7 @@ import { DevicePreview } from '@/components/device-preview';
 import type { Device, ScreenSize } from '@shared/schema';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
+import { apiRequest } from '@/lib/queryClient';
 
 const QUICK_DEVICES = [
   { id: 'iphone-15-pro-max', label: 'iPhone 15 Pro Max' },
@@ -33,15 +34,8 @@ export default function Home() {
     if (!url || !selectedDevice) return;
 
     try {
-      const response = await fetch('/api/validate-url', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url })
-      });
-
-      if (!response.ok) {
-        throw new Error('Invalid URL');
-      }
+      // First validate the URL
+      await apiRequest('POST', '/api/validate-url', { url });
 
       toast({
         title: "Testing started",
@@ -50,7 +44,7 @@ export default function Home() {
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to start testing. Please check the URL.",
+        description: "Failed to validate URL. Please check the URL is correct.",
         variant: "destructive"
       });
     }

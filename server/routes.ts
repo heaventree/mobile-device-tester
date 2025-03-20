@@ -48,10 +48,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/validate-url", async (req, res) => {
     try {
       const { url } = req.body;
+      if (!url) {
+        return res.status(400).json({ valid: false, message: "URL is required" });
+      }
       urlSchema.parse(url);
       res.json({ valid: true });
     } catch (error) {
-      res.status(400).json({ valid: false, message: "Invalid URL" });
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ valid: false, message: error.errors[0].message });
+      } else {
+        res.status(400).json({ valid: false, message: "Invalid URL" });
+      }
     }
   });
 
