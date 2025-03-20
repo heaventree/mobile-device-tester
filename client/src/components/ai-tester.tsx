@@ -25,26 +25,39 @@ export function AITester({ url, device, onAnalysisComplete }: AITesterProps) {
   const [aiAnalysis, setAiAnalysis] = React.useState<string | null>(null);
   const [isAiAnalysisOpen, setIsAiAnalysisOpen] = React.useState(false);
   const iframeRef = React.useRef<HTMLIFrameElement>(null);
+  const [error, setError] = React.useState<string | null>(null);
 
   const runAnalysis = async () => {
     setIsAnalyzing(true);
     setResults([]);
     setAiAnalysis(null);
+    setError(null);
 
     try {
-      const iframe = iframeRef.current;
-      if (!iframe) return;
+      // Create a new iframe for each analysis to prevent caching issues
+      const iframe = document.createElement('iframe');
+      iframe.style.width = device.width + 'px';
+      iframe.style.height = device.height + 'px';
+      iframe.style.position = 'absolute';
+      iframe.style.left = '-9999px';
+      iframe.style.visibility = 'hidden';
+      document.body.appendChild(iframe);
 
-      // Wait for iframe to load
-      await new Promise((resolve) => {
-        iframe.onload = resolve;
-      });
+      // Wait for iframe to load with timeout
+      await Promise.race([
+        new Promise((resolve) => {
+          iframe.onload = resolve;
+          iframe.src = url;
+        }),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Loading timeout')), 10000))
+      ]);
 
       const testResults: TestResult[] = [];
-
-      // Access iframe content
       const doc = iframe.contentDocument;
-      if (!doc) return;
+
+      if (!doc) {
+        throw new Error('Could not access page content. This might be due to CORS restrictions.');
+      }
 
       // Test 1: Viewport Meta Tag
       const viewportMeta = doc.querySelector('meta[name="viewport"]');
@@ -57,9 +70,13 @@ export function AITester({ url, device, onAnalysisComplete }: AITesterProps) {
       }
 
       // Test 2: Font Sizes
-      const smallText = Array.from(doc.querySelectorAll('*')).filter(el => {
-        const fontSize = window.getComputedStyle(el).fontSize;
-        return parseFloat(fontSize) < 12;
+      const smallText = Array.from(doc.querySelectorAll('body *')).filter(el => {
+        try {
+          const fontSize = window.getComputedStyle(el).fontSize;
+          return parseFloat(fontSize) < 12;
+        } catch (e) {
+          return false;
+        }
       });
 
       if (smallText.length > 0) {
@@ -73,8 +90,12 @@ export function AITester({ url, device, onAnalysisComplete }: AITesterProps) {
 
       // Test 3: Touch Targets
       const smallTouchTargets = Array.from(doc.querySelectorAll('button, a, [role="button"]')).filter(el => {
-        const rect = el.getBoundingClientRect();
-        return rect.width < 44 || rect.height < 44;
+        try {
+          const rect = el.getBoundingClientRect();
+          return rect.width < 44 || rect.height < 44;
+        } catch (e) {
+          return false;
+        }
       });
 
       if (smallTouchTargets.length > 0) {
@@ -98,8 +119,12 @@ export function AITester({ url, device, onAnalysisComplete }: AITesterProps) {
 
       // Test 5: Image Responsiveness
       const nonResponsiveImages = Array.from(doc.querySelectorAll('img')).filter(img => {
-        const computedStyle = window.getComputedStyle(img);
-        return !computedStyle.maxWidth || computedStyle.maxWidth === 'none';
+        try {
+          const computedStyle = window.getComputedStyle(img);
+          return !computedStyle.maxWidth || computedStyle.maxWidth === 'none';
+        } catch (e) {
+          return false;
+        }
       });
 
       if (nonResponsiveImages.length > 0) {
@@ -110,43 +135,30 @@ export function AITester({ url, device, onAnalysisComplete }: AITesterProps) {
         });
       }
 
-      // Test 6: Contrast Ratio
-      const lowContrastElements = Array.from(doc.querySelectorAll('*')).filter(el => {
-        const style = window.getComputedStyle(el);
-        const backgroundColor = style.backgroundColor;
-        const color = style.color;
-        // Simple contrast check (can be enhanced with more sophisticated contrast calculation)
-        return backgroundColor === color;
-      });
-
-      if (lowContrastElements.length > 0) {
-        testResults.push({
-          type: 'warning',
-          title: 'Low Contrast Text',
-          description: 'Found elements with potentially low contrast. Ensure sufficient contrast for readability.',
-          element: lowContrastElements[0].tagName.toLowerCase()
-        });
-      }
-
       setResults(testResults);
       onAnalysisComplete?.(testResults);
 
-      // Get AI-powered analysis
+      // Get AI-powered analysis only if we found issues
       if (testResults.length > 0) {
-        const response = await apiRequest('POST', '/api/analyze', {
-          url,
-          htmlContent: doc.documentElement.outerHTML,
-          deviceInfo: {
-            width: device.width,
-            height: device.height,
-            type: device.width <= 480 ? 'mobile' : device.width <= 1024 ? 'tablet' : 'desktop'
-          },
-          issues: testResults
-        });
+        try {
+          const response = await apiRequest('POST', '/api/analyze', {
+            url,
+            htmlContent: doc.documentElement.outerHTML,
+            deviceInfo: {
+              width: device.width,
+              height: device.height,
+              type: device.width <= 480 ? 'mobile' : device.width <= 1024 ? 'tablet' : 'desktop'
+            },
+            issues: testResults
+          });
 
-        const data = await response.json();
-        if (data.success) {
-          setAiAnalysis(data.analysis);
+          const data = await response.json();
+          if (data.success) {
+            setAiAnalysis(data.analysis);
+          }
+        } catch (error) {
+          console.error('AI Analysis error:', error);
+          // Don't fail the whole analysis if AI part fails
         }
       } else {
         setResults([{
@@ -155,12 +167,16 @@ export function AITester({ url, device, onAnalysisComplete }: AITesterProps) {
           description: 'The page appears to be well-optimized for this device size.'
         }]);
       }
+
+      // Cleanup iframe
+      document.body.removeChild(iframe);
     } catch (error) {
       console.error('Analysis error:', error);
+      setError(error instanceof Error ? error.message : 'Failed to analyze the page');
       setResults([{
         type: 'error',
         title: 'Analysis Failed',
-        description: 'Failed to analyze the page. Please try again.'
+        description: error instanceof Error ? error.message : 'Failed to analyze the page. Please try again.'
       }]);
     } finally {
       setIsAnalyzing(false);
@@ -186,19 +202,13 @@ export function AITester({ url, device, onAnalysisComplete }: AITesterProps) {
         </Button>
       </div>
 
-      {/* Hidden iframe for analysis */}
-      <iframe
-        ref={iframeRef}
-        src={url}
-        style={{ 
-          width: device.width,
-          height: device.height,
-          position: 'absolute',
-          left: '-9999px',
-          visibility: 'hidden'
-        }}
-        title="Analysis Frame"
-      />
+      {error && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Analysis Error</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
 
       {/* Results */}
       <div className="space-y-2">
