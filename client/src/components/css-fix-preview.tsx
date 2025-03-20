@@ -180,7 +180,15 @@ export function CSSFixPreview({ url, device, issues, onCSSGenerated }: CSSFixPre
                   <div className="space-y-2">
                     <div className="font-medium">{fix.description}</div>
                     <div className="text-sm text-slate-500">Impact: {fix.impact}</div>
-                    <div className="bg-slate-100 p-2 rounded">
+                    <div className="bg-slate-100 p-2 rounded relative group">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={() => copyToClipboard(`${fix.selector} { ${fix.css} }`)}
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
                       <code>{fix.selector} {`{`}</code>
                       <pre className="text-sm pl-4">{fix.css}</pre>
                       <code>{`}`}</code>
@@ -199,7 +207,15 @@ export function CSSFixPreview({ url, device, issues, onCSSGenerated }: CSSFixPre
                   <div className="space-y-2">
                     <div className="font-medium">@media {mq.query}</div>
                     {mq.rules.map((rule, ruleIndex) => (
-                      <div key={ruleIndex} className="bg-slate-100 p-2 rounded">
+                      <div key={ruleIndex} className="bg-slate-100 p-2 rounded relative group">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={() => copyToClipboard(`${rule.selector} { ${rule.css} }`)}
+                        >
+                          <Copy className="h-4 w-4" />
+                        </Button>
                         <code>{rule.selector} {`{`}</code>
                         <pre className="text-sm pl-4">{rule.css}</pre>
                         <code>{`}`}</code>

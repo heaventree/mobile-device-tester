@@ -3,7 +3,7 @@ import { Device, ScreenSize } from '@shared/schema';
 import { Card } from '@/components/ui/card';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
-import { Camera, Eye, EyeOff } from 'lucide-react';
+import { Camera, Eye, EyeOff, Loader2 } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import { useToast } from '@/hooks/use-toast';
 import { AITester } from './ai-tester';
@@ -42,18 +42,16 @@ export function DevicePreview({ url, device, screenSize }: DevicePreviewProps) {
     return () => window.removeEventListener('resize', updateScale);
   }, [updateScale]);
 
-  // Debounced update of iframe content with cleanup
   const updateIframeContent = React.useCallback(async () => {
-    const iframe = iframeRef.current;
-    if (!iframe || !url || isLoadingPreview) return;
+    if (!iframeRef.current || !url || isLoadingPreview) return;
 
-    setIsLoadingPreview(true);
     try {
+      setIsLoadingPreview(true);
       const response = await fetch(`/api/fetch-page?url=${encodeURIComponent(url)}`);
       if (!response.ok) throw new Error('Failed to fetch page content');
       const html = await response.text();
 
-      const doc = iframe.contentDocument;
+      const doc = iframeRef.current.contentDocument;
       if (!doc) return;
 
       doc.open();
@@ -75,46 +73,18 @@ export function DevicePreview({ url, device, screenSize }: DevicePreviewProps) {
   }, [url, cssPreviewEnabled, generatedCSS, isLoadingPreview]);
 
   React.useEffect(() => {
-    // Clear any existing timeout
     if (previewTimeoutRef.current) {
       clearTimeout(previewTimeoutRef.current);
     }
 
-    // Set new timeout
-    previewTimeoutRef.current = window.setTimeout(updateIframeContent, 500);
+    previewTimeoutRef.current = window.setTimeout(updateIframeContent, 1000);
 
-    // Cleanup
     return () => {
       if (previewTimeoutRef.current) {
         clearTimeout(previewTimeoutRef.current);
       }
     };
   }, [updateIframeContent]);
-
-  const captureScreenshot = async () => {
-    if (!containerRef.current || !device) return;
-
-    try {
-      const canvas = await html2canvas(containerRef.current.querySelector('.preview-container') as HTMLElement);
-      const image = canvas.toDataURL('image/png');
-
-      const link = document.createElement('a');
-      link.download = `${device.name.toLowerCase().replace(/\s+/g, '-')}-screenshot.png`;
-      link.href = image;
-      link.click();
-
-      toast({
-        title: "Screenshot captured!",
-        description: "Your screenshot has been downloaded.",
-      });
-    } catch (error) {
-      toast({
-        title: "Screenshot failed",
-        description: "Failed to capture screenshot. Please try again.",
-        variant: "destructive"
-      });
-    }
-  };
 
   if (!url || !device || !screenSize) {
     return (
@@ -137,12 +107,14 @@ export function DevicePreview({ url, device, screenSize }: DevicePreviewProps) {
               size="sm"
               onClick={() => {
                 setCssPreviewEnabled(!cssPreviewEnabled);
-                // Force preview update when toggling CSS
                 updateIframeContent();
               }}
+              disabled={isLoadingPreview}
               className="gap-2"
             >
-              {cssPreviewEnabled ? (
+              {isLoadingPreview ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : cssPreviewEnabled ? (
                 <>
                   <EyeOff className="h-4 w-4" />
                   Disable CSS Fixes
@@ -222,6 +194,7 @@ export function DevicePreview({ url, device, screenSize }: DevicePreviewProps) {
             onCSSGenerated={(css) => {
               setGeneratedCSS(css);
               setCssPreviewEnabled(true);
+              updateIframeContent();
             }}
           />
         </div>

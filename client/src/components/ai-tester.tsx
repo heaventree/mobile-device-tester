@@ -1,10 +1,9 @@
 import React from 'react';
 import { Card } from '@/components/ui/card';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import { Loader2, AlertCircle, CheckCircle, ChevronDown, ChevronUp } from 'lucide-react';
+import { Loader2, AlertCircle, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { apiRequest } from '@/lib/queryClient';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 interface TestResult {
   type: 'error' | 'warning' | 'success';
@@ -23,7 +22,6 @@ export function AITester({ url, device, onAnalysisComplete }: AITesterProps) {
   const [isAnalyzing, setIsAnalyzing] = React.useState(false);
   const [results, setResults] = React.useState<TestResult[]>([]);
   const [aiAnalysis, setAiAnalysis] = React.useState<string | null>(null);
-  const [isAiAnalysisOpen, setIsAiAnalysisOpen] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
   const runAnalysis = async () => {
@@ -46,6 +44,7 @@ export function AITester({ url, device, onAnalysisComplete }: AITesterProps) {
       const doc = parser.parseFromString(html, 'text/html');
       const testResults: TestResult[] = [];
 
+      // Quick initial analysis
       // Test 1: Viewport Meta Tag
       const viewportMeta = doc.querySelector('meta[name="viewport"]');
       if (!viewportMeta) {
@@ -110,10 +109,11 @@ export function AITester({ url, device, onAnalysisComplete }: AITesterProps) {
         });
       }
 
+      // Set initial results immediately
       setResults(testResults);
       onAnalysisComplete?.(testResults);
 
-      // Get AI-powered analysis only if we found issues
+      // Only proceed with AI analysis if we found issues
       if (testResults.length > 0) {
         try {
           const response = await apiRequest('POST', '/api/analyze', {
@@ -175,14 +175,6 @@ export function AITester({ url, device, onAnalysisComplete }: AITesterProps) {
         </Button>
       </div>
 
-      {error && (
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Analysis Error</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
-
       {/* Results */}
       <div className="space-y-2">
         {results.map((result, index) => (
@@ -205,31 +197,6 @@ export function AITester({ url, device, onAnalysisComplete }: AITesterProps) {
             </AlertDescription>
           </Alert>
         ))}
-
-        {/* AI Analysis */}
-        {aiAnalysis && (
-          <Collapsible open={isAiAnalysisOpen} onOpenChange={setIsAiAnalysisOpen}>
-            <CollapsibleTrigger asChild>
-              <Button variant="outline" className="w-full justify-between">
-                <span>AI Analysis and Recommendations</span>
-                {isAiAnalysisOpen ? (
-                  <ChevronUp className="h-4 w-4" />
-                ) : (
-                  <ChevronDown className="h-4 w-4" />
-                )}
-              </Button>
-            </CollapsibleTrigger>
-            <CollapsibleContent>
-              <Card className="mt-2 p-4">
-                <div className="prose prose-sm max-w-none prose-slate dark:prose-invert">
-                  {aiAnalysis.split('\n').map((line, i) => (
-                    <p key={i}>{line}</p>
-                  ))}
-                </div>
-              </Card>
-            </CollapsibleContent>
-          </Collapsible>
-        )}
       </div>
     </div>
   );
