@@ -3,11 +3,28 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertDeviceSchema } from "@shared/schema";
 import { z } from "zod";
+import OpenAI from 'openai';
+import type { ChatCompletionMessageParam } from 'openai/resources/chat/completions';
 
 const urlSchema = z.string().url();
 const wpTestSchema = z.object({
   pageId: z.number(),
   deviceType: z.string()
+});
+
+const aiAnalysisSchema = z.object({
+  url: z.string().url(),
+  htmlContent: z.string(),
+  deviceInfo: z.object({
+    width: z.number(),
+    height: z.number(),
+    type: z.string()
+  }),
+  issues: z.array(z.object({
+    type: z.string(),
+    description: z.string(),
+    element: z.string().optional()
+  }))
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -78,6 +95,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } else {
         res.status(500).json({ message: "Failed to record test" });
       }
+    }
+  });
+
+  // AI Analysis endpoint
+  app.post("/api/analyze", async (req, res) => {
+    try {
+      const data = aiAnalysisSchema.parse(req.body);
+
+      const openai = new OpenAI({
+        apiKey: process.env.OPENAI_API_KEY
+      });
+
+      const messages: ChatCompletionMessageParam[] = [
+        {
+          role: 'system',
+          content: `You are a responsive design expert analyzing websites. Focus on mobile-first design, accessibility, and user experience. Analyze the provided HTML content and issues for a ${data.deviceInfo.width}x${data.deviceInfo.height} screen.`
+        },
+        {
+          role: 'user',
+          content: `
+URL: ${data.url}
+Device: ${data.deviceInfo.width}x${data.deviceInfo.height}
+Initial issues found:
+${data.issues.map(issue => `- ${issue.type}: ${issue.description}`).join('\n')}
+
+Please analyze these issues and provide:
+1. Severity assessment for each issue
+2. Detailed explanation of the impact
+3. Specific suggestions for fixes
+4. Additional best practices to consider
+5. Accessibility implications`
+        }
+      ];
+
+      const completion = await openai.chat.completions.create({
+        model: "gpt-4",
+        messages,
+        temperature: 0.7,
+        max_tokens: 1000
+      });
+
+      const aiAnalysis = completion.choices[0].message.content;
+
+      res.json({
+        success: true,
+        analysis: aiAnalysis,
+        rawIssues: data.issues
+      });
+    } catch (error) {
+      console.error('AI Analysis error:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: 'Failed to analyze page',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
     }
   });
 

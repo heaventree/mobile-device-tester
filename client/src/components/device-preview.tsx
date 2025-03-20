@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Camera } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import { useToast } from '@/hooks/use-toast';
+import { AITester } from './ai-tester';
 
 interface DevicePreviewProps {
   url: string;
@@ -123,6 +124,25 @@ export function DevicePreview({ url, device, screenSize }: DevicePreviewProps) {
             title="Website Preview"
           />
         </motion.div>
+      </div>
+
+      {/* AI Testing Section */}
+      <div className="p-4 border-t border-slate-700">
+        <AITester 
+          url={url}
+          device={screenSize}
+          onAnalysisComplete={(results) => {
+            // Show toast for critical errors
+            const criticalErrors = results.filter(r => r.type === 'error');
+            if (criticalErrors.length > 0) {
+              toast({
+                title: "Critical Issues Found",
+                description: `Found ${criticalErrors.length} critical responsive design issues.`,
+                variant: "destructive"
+              });
+            }
+          }}
+        />
       </div>
     </Card>
   );
