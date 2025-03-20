@@ -13,13 +13,20 @@ interface DevicePreviewProps {
   url: string;
   device: Device | null;
   screenSize: ScreenSize | null;
+  onAnalysisComplete?: (results: any[]) => void;
+  analysisResults?: any[];
 }
 
-export function DevicePreview({ url, device, screenSize }: DevicePreviewProps) {
+export function DevicePreview({ 
+  url, 
+  device, 
+  screenSize,
+  onAnalysisComplete,
+  analysisResults = []
+}: DevicePreviewProps) {
   const containerRef = React.useRef<HTMLDivElement>(null);
   const iframeRef = React.useRef<HTMLIFrameElement>(null);
   const [scale, setScale] = React.useState(1);
-  const [results, setResults] = React.useState([]);
   const [cssPreviewEnabled, setCssPreviewEnabled] = React.useState(false);
   const [generatedCSS, setGeneratedCSS] = React.useState<string | null>(null);
   const [isLoadingPreview, setIsLoadingPreview] = React.useState(false);
@@ -207,7 +214,7 @@ export function DevicePreview({ url, device, screenSize }: DevicePreviewProps) {
           cssEnabled={cssPreviewEnabled}
           cssContent={generatedCSS}
           onAnalysisComplete={(newResults) => {
-            setResults(newResults);
+            onAnalysisComplete?.(newResults);
             const criticalErrors = newResults.filter(r => r.type === 'error');
             if (criticalErrors.length > 0) {
               toast({
@@ -222,7 +229,7 @@ export function DevicePreview({ url, device, screenSize }: DevicePreviewProps) {
           <CSSFixPreview
             url={url}
             device={screenSize}
-            issues={results}
+            issues={analysisResults}
             onCSSGenerated={(css) => {
               setGeneratedCSS(css);
               setCssPreviewEnabled(true);

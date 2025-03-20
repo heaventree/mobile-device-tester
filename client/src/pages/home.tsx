@@ -23,6 +23,7 @@ export default function Home() {
   const [selectedDevice, setSelectedDevice] = React.useState<Device | null>(null);
   const [selectedScreenSize, setSelectedScreenSize] = React.useState<ScreenSize | null>(null);
   const [devices, setDevices] = React.useState<Device[]>([]);
+  const [analysisResults, setAnalysisResults] = React.useState([]); // Add state for analysis results
   const { toast } = useToast();
 
   const handleDeviceSelect = (device: Device, screenSize: ScreenSize) => {
@@ -138,6 +139,8 @@ export default function Home() {
             url={url}
             device={selectedDevice}
             screenSize={selectedScreenSize}
+            onAnalysisComplete={setAnalysisResults} // Pass the analysis handler
+            analysisResults={analysisResults} // Pass the current results
           />
         </div>
       </div>
