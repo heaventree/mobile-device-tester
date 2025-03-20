@@ -6,8 +6,6 @@ import type { Device, ScreenSize } from '@shared/schema';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
-import { AITester } from '@/components/ai-tester';
-import { CSSFixPreview } from '@/components/css-fix-preview';
 
 const QUICK_DEVICES = [
   { id: 'iphone-15-pro-max', label: 'iPhone 15 Pro Max' },
@@ -142,7 +140,7 @@ export default function Home() {
             screenSize={selectedScreenSize}
           />
         </div>
-        </div>
+      </div>
     </div>
   );
 }
