@@ -3,7 +3,7 @@ import { Device, ScreenSize } from '@shared/schema';
 import { Card } from '@/components/ui/card';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
-import { Camera, Eye, EyeOff, Loader2 } from 'lucide-react';
+import { Camera, Eye, EyeOff, Loader2, RefreshCw } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import { useToast } from '@/hooks/use-toast';
 import { AITester } from './ai-tester';
@@ -72,19 +72,19 @@ export function DevicePreview({ url, device, screenSize }: DevicePreviewProps) {
     }
   }, [url, cssPreviewEnabled, generatedCSS, isLoadingPreview]);
 
+  // Only update when URL changes
   React.useEffect(() => {
-    if (previewTimeoutRef.current) {
-      clearTimeout(previewTimeoutRef.current);
-    }
+    updateIframeContent();
+  }, [url]); // Remove automatic refresh on CSS changes
 
-    previewTimeoutRef.current = window.setTimeout(updateIframeContent, 1000);
+  const handleRefresh = () => {
+    updateIframeContent();
+  };
 
-    return () => {
-      if (previewTimeoutRef.current) {
-        clearTimeout(previewTimeoutRef.current);
-      }
-    };
-  }, [updateIframeContent]);
+  const handleToggleCSS = () => {
+    setCssPreviewEnabled(!cssPreviewEnabled);
+    updateIframeContent();
+  };
 
   const captureScreenshot = async () => {
     if (!containerRef.current || !device) return;
@@ -127,14 +127,22 @@ export function DevicePreview({ url, device, screenSize }: DevicePreviewProps) {
           {device.name} - {screenSize.width}x{screenSize.height}
         </div>
         <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleRefresh}
+            disabled={isLoadingPreview}
+            className="gap-2"
+          >
+            <RefreshCw className={`h-4 w-4 ${isLoadingPreview ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+
           {generatedCSS && (
             <Button
               variant="outline"
               size="sm"
-              onClick={() => {
-                setCssPreviewEnabled(!cssPreviewEnabled);
-                updateIframeContent();
-              }}
+              onClick={handleToggleCSS}
               disabled={isLoadingPreview}
               className="gap-2"
             >
