@@ -37,7 +37,6 @@ export function AITester({ url, device, cssEnabled, cssContent, onAnalysisComple
     setError(null);
 
     try {
-      // Quick initial analysis
       const proxyUrl = `/api/fetch-page?url=${encodeURIComponent(url)}`;
       const pageResponse = await fetch(proxyUrl);
       if (!pageResponse.ok) {
@@ -45,7 +44,6 @@ export function AITester({ url, device, cssEnabled, cssContent, onAnalysisComple
       }
       const html = await pageResponse.text();
 
-      // If CSS fixes are enabled, inject them into the HTML for analysis
       let testHtml = html;
       if (cssEnabled && cssContent) {
         const parser = new DOMParser();
@@ -61,7 +59,6 @@ export function AITester({ url, device, cssEnabled, cssContent, onAnalysisComple
       const doc = parser.parseFromString(testHtml, 'text/html');
       const testResults: TestResult[] = [];
 
-      // Test 1: Viewport Meta Tag
       const viewportMeta = doc.querySelector('meta[name="viewport"]');
       if (!viewportMeta) {
         testResults.push({
@@ -71,7 +68,6 @@ export function AITester({ url, device, cssEnabled, cssContent, onAnalysisComple
         });
       }
 
-      // Test 2: Font Sizes
       const smallText = Array.from(doc.querySelectorAll('body *')).filter(el => {
         const style = window.getComputedStyle(el);
         const fontSize = style.fontSize;
@@ -87,7 +83,6 @@ export function AITester({ url, device, cssEnabled, cssContent, onAnalysisComple
         });
       }
 
-      // Test 3: Touch Targets
       const smallTouchTargets = Array.from(doc.querySelectorAll('button, a, [role="button"]')).filter(el => {
         const rect = el.getBoundingClientRect();
         return rect.width < 44 || rect.height < 44;
@@ -102,7 +97,6 @@ export function AITester({ url, device, cssEnabled, cssContent, onAnalysisComple
         });
       }
 
-      // Test 4: Horizontal Scrolling
       const docWidth = doc.documentElement.scrollWidth;
       if (docWidth > device.width) {
         testResults.push({
@@ -112,7 +106,6 @@ export function AITester({ url, device, cssEnabled, cssContent, onAnalysisComple
         });
       }
 
-      // Test 5: Image Responsiveness
       const nonResponsiveImages = Array.from(doc.querySelectorAll('img')).filter(img => {
         return !img.getAttribute('srcset') && !img.hasAttribute('loading');
       });
@@ -125,12 +118,10 @@ export function AITester({ url, device, cssEnabled, cssContent, onAnalysisComple
         });
       }
 
-      // Set initial results immediately
       setResults(testResults);
       onAnalysisComplete?.(testResults);
       setIsQuickAnalyzing(false);
 
-      // Only proceed with AI analysis if we found issues
       if (testResults.length > 0) {
         try {
           setIsAiAnalyzing(true);
@@ -175,10 +166,11 @@ export function AITester({ url, device, cssEnabled, cssContent, onAnalysisComple
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-medium">AI Responsive Testing</h3>
+        <h3 className="text-lg font-medium text-slate-200">AI Responsive Testing</h3>
         <Button
           onClick={runAnalysis}
           disabled={isQuickAnalyzing || isAiAnalyzing}
+          className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700"
         >
           {isQuickAnalyzing ? (
             <>
@@ -196,7 +188,6 @@ export function AITester({ url, device, cssEnabled, cssContent, onAnalysisComple
         </Button>
       </div>
 
-      {/* Results section */}
       <div className="space-y-2">
         {results.map((result, index) => (
           <Alert key={index} variant={result.type === 'error' ? 'destructive' : 'default'}>
@@ -211,7 +202,7 @@ export function AITester({ url, device, cssEnabled, cssContent, onAnalysisComple
             <AlertDescription>
               {result.description}
               {result.element && (
-                <div className="mt-1 text-sm text-slate-500">
+                <div className="mt-1 text-sm text-slate-400">
                   First occurrence: {`<${result.element}>`}
                 </div>
               )}
@@ -219,11 +210,10 @@ export function AITester({ url, device, cssEnabled, cssContent, onAnalysisComple
           </Alert>
         ))}
 
-        {/* AI Analysis Section */}
         {(aiAnalysis || isAiAnalyzing) && (
           <Collapsible>
             <CollapsibleTrigger asChild>
-              <Button variant="outline" className="w-full justify-between">
+              <Button variant="outline" className="w-full justify-between border-purple-500/20 hover:bg-purple-500/10">
                 <span>View AI Recommendations</span>
                 {isAiAnalyzing ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -233,7 +223,7 @@ export function AITester({ url, device, cssEnabled, cssContent, onAnalysisComple
               </Button>
             </CollapsibleTrigger>
             <CollapsibleContent>
-              <Card className="mt-2 p-4">
+              <Card className="mt-2 p-4 bg-slate-800/90 border-purple-500/20">
                 {isAiAnalyzing ? (
                   <div className="flex items-center justify-center py-4">
                     <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -242,7 +232,7 @@ export function AITester({ url, device, cssEnabled, cssContent, onAnalysisComple
                     </span>
                   </div>
                 ) : (
-                  <pre className="whitespace-pre-wrap text-sm">
+                  <pre className="whitespace-pre-wrap text-sm text-slate-200">
                     {aiAnalysis}
                   </pre>
                 )}
