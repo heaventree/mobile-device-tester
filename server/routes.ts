@@ -5,6 +5,7 @@ import { insertDeviceSchema } from "@shared/schema";
 import { z } from "zod";
 import OpenAI from 'openai';
 import type { ChatCompletionMessageParam } from 'openai/resources/chat/completions';
+import fetch from 'node-fetch';
 
 const urlSchema = z.string().url();
 const wpTestSchema = z.object({
@@ -14,7 +15,6 @@ const wpTestSchema = z.object({
 
 const aiAnalysisSchema = z.object({
   url: z.string().url(),
-  htmlContent: z.string(),
   deviceInfo: z.object({
     width: z.number(),
     height: z.number(),
@@ -100,6 +100,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } else {
         res.status(500).json({ message: "Failed to record test" });
       }
+    }
+  });
+
+  // Proxy route to fetch webpage content
+  app.get("/api/fetch-page", async (req, res) => {
+    try {
+      const { url } = req.query;
+      if (!url || typeof url !== 'string') {
+        return res.status(400).json({ error: 'URL is required' });
+      }
+
+      const response = await fetch(url);
+      const html = await response.text();
+      res.send(html);
+    } catch (error) {
+      console.error('Error fetching page:', error);
+      res.status(500).json({ 
+        error: 'Failed to fetch page content',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      });
     }
   });
 

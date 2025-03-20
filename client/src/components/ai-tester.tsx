@@ -33,30 +33,18 @@ export function AITester({ url, device, onAnalysisComplete }: AITesterProps) {
     setError(null);
 
     try {
-      // Create a new iframe for each analysis to prevent caching issues
-      const iframe = document.createElement('iframe');
-      iframe.style.width = device.width + 'px';
-      iframe.style.height = device.height + 'px';
-      iframe.style.position = 'absolute';
-      iframe.style.left = '-9999px';
-      iframe.style.visibility = 'hidden';
-      document.body.appendChild(iframe);
-
-      // Wait for iframe to load with timeout
-      await Promise.race([
-        new Promise((resolve) => {
-          iframe.onload = resolve;
-          iframe.src = url;
-        }),
-        new Promise((_, reject) => setTimeout(() => reject(new Error('Loading timeout')), 10000))
-      ]);
-
-      const testResults: TestResult[] = [];
-      const doc = iframe.contentDocument;
-
-      if (!doc) {
-        throw new Error('Could not access page content. This might be due to CORS restrictions.');
+      // Fetch page content through our proxy
+      const proxyUrl = `/api/fetch-page?url=${encodeURIComponent(url)}`;
+      const pageResponse = await fetch(proxyUrl);
+      if (!pageResponse.ok) {
+        throw new Error('Failed to fetch page content');
       }
+      const html = await pageResponse.text();
+
+      // Create a temporary div to parse the HTML
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(html, 'text/html');
+      const testResults: TestResult[] = [];
 
       // Test 1: Viewport Meta Tag
       const viewportMeta = doc.querySelector('meta[name="viewport"]');
@@ -70,12 +58,9 @@ export function AITester({ url, device, onAnalysisComplete }: AITesterProps) {
 
       // Test 2: Font Sizes
       const smallText = Array.from(doc.querySelectorAll('body *')).filter(el => {
-        try {
-          const fontSize = window.getComputedStyle(el).fontSize;
-          return parseFloat(fontSize) < 12;
-        } catch (e) {
-          return false;
-        }
+        const style = window.getComputedStyle(el);
+        const fontSize = style.fontSize;
+        return fontSize && parseFloat(fontSize) < 12;
       });
 
       if (smallText.length > 0) {
@@ -89,12 +74,8 @@ export function AITester({ url, device, onAnalysisComplete }: AITesterProps) {
 
       // Test 3: Touch Targets
       const smallTouchTargets = Array.from(doc.querySelectorAll('button, a, [role="button"]')).filter(el => {
-        try {
-          const rect = el.getBoundingClientRect();
-          return rect.width < 44 || rect.height < 44;
-        } catch (e) {
-          return false;
-        }
+        const rect = el.getBoundingClientRect();
+        return rect.width < 44 || rect.height < 44;
       });
 
       if (smallTouchTargets.length > 0) {
@@ -118,19 +99,14 @@ export function AITester({ url, device, onAnalysisComplete }: AITesterProps) {
 
       // Test 5: Image Responsiveness
       const nonResponsiveImages = Array.from(doc.querySelectorAll('img')).filter(img => {
-        try {
-          const computedStyle = window.getComputedStyle(img);
-          return !computedStyle.maxWidth || computedStyle.maxWidth === 'none';
-        } catch (e) {
-          return false;
-        }
+        return !img.getAttribute('srcset') && !img.hasAttribute('loading');
       });
 
       if (nonResponsiveImages.length > 0) {
         testResults.push({
           type: 'warning',
           title: 'Non-Responsive Images',
-          description: `Found ${nonResponsiveImages.length} images without max-width property. Add 'max-width: 100%' to ensure images scale properly.`
+          description: `Found ${nonResponsiveImages.length} images without responsive attributes. Add 'srcset' and 'loading="lazy"' for better performance.`
         });
       }
 
@@ -142,7 +118,6 @@ export function AITester({ url, device, onAnalysisComplete }: AITesterProps) {
         try {
           const response = await apiRequest('POST', '/api/analyze', {
             url,
-            htmlContent: doc.documentElement.outerHTML,
             deviceInfo: {
               width: device.width,
               height: device.height,
@@ -168,9 +143,6 @@ export function AITester({ url, device, onAnalysisComplete }: AITesterProps) {
           description: 'The page appears to be well-optimized for this device size.'
         }]);
       }
-
-      // Cleanup iframe
-      document.body.removeChild(iframe);
     } catch (error) {
       console.error('Analysis error:', error);
       setError(error instanceof Error ? error.message : 'Failed to analyze the page');
