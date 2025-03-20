@@ -23,8 +23,8 @@ export class MemStorage implements IStorage {
         type: 'phone',
         manufacturer: 'Apple',
         screenSizes: [
-          { width: 1290, height: 2796 },
-          { width: 430, height: 932 }
+          { width: 430, height: 932 },
+          { width: 932, height: 430 } // Landscape
         ],
         osVersions: ['iOS 17']
       },
@@ -34,8 +34,8 @@ export class MemStorage implements IStorage {
         type: 'phone',
         manufacturer: 'Apple',
         screenSizes: [
-          { width: 1179, height: 2556 },
-          { width: 390, height: 844 }
+          { width: 390, height: 844 },
+          { width: 844, height: 390 } // Landscape
         ],
         osVersions: ['iOS 17']
       },
@@ -45,8 +45,8 @@ export class MemStorage implements IStorage {
         type: 'phone',
         manufacturer: 'Samsung',
         screenSizes: [
-          { width: 1440, height: 3120 },
-          { width: 360, height: 780 }
+          { width: 360, height: 780 },
+          { width: 780, height: 360 } // Landscape
         ],
         osVersions: ['Android 14']
       },
@@ -56,19 +56,19 @@ export class MemStorage implements IStorage {
         type: 'phone',
         manufacturer: 'Google',
         screenSizes: [
-          { width: 1344, height: 2992 },
-          { width: 384, height: 854 }
+          { width: 384, height: 854 },
+          { width: 854, height: 384 } // Landscape
         ],
         osVersions: ['Android 14']
       },
       {
         id: 'ipad-pro-13',
-        name: 'iPad Pro 12.9" (6th gen)',
+        name: 'iPad Pro 12.9"',
         type: 'tablet',
         manufacturer: 'Apple',
         screenSizes: [
-          { width: 2048, height: 2732 },
-          { width: 1024, height: 1366 }
+          { width: 1024, height: 1366 },
+          { width: 1366, height: 1024 } // Landscape
         ],
         osVersions: ['iPadOS 17']
       },
@@ -78,8 +78,8 @@ export class MemStorage implements IStorage {
         type: 'tablet',
         manufacturer: 'Samsung',
         screenSizes: [
-          { width: 2960, height: 1848 },
-          { width: 1480, height: 924 }
+          { width: 1480, height: 924 },
+          { width: 924, height: 1480 } // Portrait
         ],
         osVersions: ['Android 14']
       },
@@ -89,7 +89,6 @@ export class MemStorage implements IStorage {
         type: 'laptop',
         manufacturer: 'Apple',
         screenSizes: [
-          { width: 3456, height: 2234 },
           { width: 1728, height: 1117 }
         ],
         osVersions: ['macOS']
@@ -100,10 +99,39 @@ export class MemStorage implements IStorage {
         type: 'laptop',
         manufacturer: 'Microsoft',
         screenSizes: [
-          { width: 2496, height: 1664 },
           { width: 1248, height: 832 }
         ],
         osVersions: ['Windows 11']
+      },
+      {
+        id: 'desktop-4k',
+        name: '4K Desktop Monitor',
+        type: 'desktop',
+        manufacturer: 'Generic',
+        screenSizes: [
+          { width: 3840, height: 2160 }
+        ],
+        osVersions: ['Any']
+      },
+      {
+        id: 'desktop-1440p',
+        name: '1440p Desktop Monitor',
+        type: 'desktop',
+        manufacturer: 'Generic',
+        screenSizes: [
+          { width: 2560, height: 1440 }
+        ],
+        osVersions: ['Any']
+      },
+      {
+        id: 'desktop-1080p',
+        name: '1080p Desktop Monitor',
+        type: 'desktop',
+        manufacturer: 'Generic',
+        screenSizes: [
+          { width: 1920, height: 1080 }
+        ],
+        osVersions: ['Any']
       }
     ];
 

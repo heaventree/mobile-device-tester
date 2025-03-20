@@ -10,10 +10,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Device, ScreenSize } from '@shared/schema';
 import { Skeleton } from '@/components/ui/skeleton';
 import { motion } from 'framer-motion';
-import { Phone, Tablet, Laptop, Smartphone } from 'lucide-react';
+import { Phone, Tablet, Laptop, Monitor, Smartphone, RotateCcw } from 'lucide-react';
 
 interface DeviceSelectorProps {
   onDeviceSelect: (device: Device, screenSize: ScreenSize) => void;
@@ -27,6 +28,8 @@ const DeviceIcon = ({ type }: { type: string }) => {
       return <Tablet className="h-4 w-4" />;
     case 'laptop':
       return <Laptop className="h-4 w-4" />;
+    case 'desktop':
+      return <Monitor className="h-4 w-4" />;
     default:
       return <Smartphone className="h-4 w-4" />;
   }
@@ -38,7 +41,7 @@ export function DeviceSelector({ onDeviceSelect }: DeviceSelectorProps) {
   });
 
   const [selectedDevice, setSelectedDevice] = React.useState<Device | null>(null);
-  const [selectedScreenSize, setSelectedScreenSize] = React.useState<ScreenSize | null>(null);
+  const [isLandscape, setIsLandscape] = React.useState(false);
 
   if (isLoading) {
     return <Skeleton className="w-full h-48" />;
@@ -60,16 +63,19 @@ export function DeviceSelector({ onDeviceSelect }: DeviceSelectorProps) {
     const device = devices.find(d => d.id === deviceId);
     if (device) {
       setSelectedDevice(device);
-      setSelectedScreenSize(device.screenSizes[0]);
-      onDeviceSelect(device, device.screenSizes[0]);
+      // For devices with multiple orientations, use the appropriate size based on orientation
+      const screenSize = device.screenSizes.length > 1 ? 
+        device.screenSizes[isLandscape ? 1 : 0] : 
+        device.screenSizes[0];
+      onDeviceSelect(device, screenSize);
     }
   };
 
-  const handleScreenSizeChange = (sizeIndex: string) => {
-    if (selectedDevice) {
-      const size = selectedDevice.screenSizes[parseInt(sizeIndex)];
-      setSelectedScreenSize(size);
-      onDeviceSelect(selectedDevice, size);
+  const handleOrientationToggle = () => {
+    if (selectedDevice?.screenSizes.length === 2) {
+      const newIsLandscape = !isLandscape;
+      setIsLandscape(newIsLandscape);
+      onDeviceSelect(selectedDevice, selectedDevice.screenSizes[newIsLandscape ? 1 : 0]);
     }
   };
 
@@ -82,7 +88,20 @@ export function DeviceSelector({ onDeviceSelect }: DeviceSelectorProps) {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3 }}
         >
-          <label className="text-sm font-medium text-slate-200">Select Device</label>
+          <div className="flex items-center justify-between">
+            <label className="text-sm font-medium text-slate-200">Select Device</label>
+            {selectedDevice?.screenSizes.length === 2 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleOrientationToggle}
+                className="text-slate-200 hover:text-slate-100"
+              >
+                <RotateCcw className="h-4 w-4 mr-1" />
+                {isLandscape ? 'Portrait' : 'Landscape'}
+              </Button>
+            )}
+          </div>
           <Select onValueChange={handleDeviceChange}>
             <SelectTrigger className="w-full bg-slate-700/50 border-slate-600 text-slate-200">
               <SelectValue placeholder="Choose a device" />
@@ -100,7 +119,12 @@ export function DeviceSelector({ onDeviceSelect }: DeviceSelectorProps) {
                       value={device.id}
                       className="text-slate-200 hover:bg-slate-700 focus:bg-slate-700"
                     >
-                      {device.name}
+                      <span className="flex items-center gap-2">
+                        {device.name}
+                        <span className="text-xs text-slate-400">
+                          {device.screenSizes[0].width}x{device.screenSizes[0].height}
+                        </span>
+                      </span>
                     </SelectItem>
                   ))}
                 </SelectGroup>
@@ -108,33 +132,6 @@ export function DeviceSelector({ onDeviceSelect }: DeviceSelectorProps) {
             </SelectContent>
           </Select>
         </motion.div>
-
-        {selectedDevice && (
-          <motion.div 
-            className="space-y-4"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, delay: 0.1 }}
-          >
-            <label className="text-sm font-medium text-slate-200">Screen Size</label>
-            <Select onValueChange={handleScreenSizeChange}>
-              <SelectTrigger className="w-full bg-slate-700/50 border-slate-600 text-slate-200">
-                <SelectValue placeholder="Choose screen size" />
-              </SelectTrigger>
-              <SelectContent className="bg-slate-800 border-slate-700">
-                {selectedDevice.screenSizes.map((size, index) => (
-                  <SelectItem 
-                    key={index} 
-                    value={index.toString()}
-                    className="text-slate-200 hover:bg-slate-700 focus:bg-slate-700"
-                  >
-                    {size.width} x {size.height}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </motion.div>
-        )}
       </CardContent>
     </Card>
   );
