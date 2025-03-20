@@ -51,11 +51,23 @@ export default function Home() {
   };
 
   React.useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const urlParam = params.get('url');
+    if (urlParam) {
+      setUrl(urlParam);
+    }
+
     const fetchData = async () => {
       try {
         const response = await fetch('/api/devices');
         const data = await response.json();
         setDevices(data);
+
+        // Auto-select first device when loading from WordPress
+        if (urlParam && data.length > 0) {
+          const firstDevice = data[0];
+          handleDeviceSelect(firstDevice, firstDevice.screenSizes[0]);
+        }
       } catch (error) {
         console.error("Error fetching devices:", error);
       }
