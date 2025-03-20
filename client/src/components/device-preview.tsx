@@ -13,20 +13,13 @@ interface DevicePreviewProps {
   url: string;
   device: Device | null;
   screenSize: ScreenSize | null;
-  onAnalysisComplete?: (results: any[]) => void;
-  analysisResults?: any[];
 }
 
-export function DevicePreview({ 
-  url, 
-  device, 
-  screenSize,
-  onAnalysisComplete,
-  analysisResults = []
-}: DevicePreviewProps) {
+export function DevicePreview({ url, device, screenSize }: DevicePreviewProps) {
   const containerRef = React.useRef<HTMLDivElement>(null);
   const iframeRef = React.useRef<HTMLIFrameElement>(null);
   const [scale, setScale] = React.useState(1);
+  const [results, setResults] = React.useState([]);
   const [cssPreviewEnabled, setCssPreviewEnabled] = React.useState(false);
   const [generatedCSS, setGeneratedCSS] = React.useState<string | null>(null);
   const [isLoadingPreview, setIsLoadingPreview] = React.useState(false);
@@ -34,8 +27,8 @@ export function DevicePreview({
 
   const updateScale = React.useCallback(() => {
     if (containerRef.current && screenSize) {
-      const containerWidth = containerRef.current.clientWidth - 48;
-      const containerHeight = containerRef.current.clientHeight - 48;
+      const containerHeight = 600;
+      const containerWidth = containerRef.current.clientWidth;
       const scaleX = containerWidth / screenSize.width;
       const scaleY = containerHeight / screenSize.height;
       setScale(Math.min(scaleX, scaleY, 1));
@@ -48,6 +41,7 @@ export function DevicePreview({
     return () => window.removeEventListener('resize', updateScale);
   }, [updateScale]);
 
+  // Update iframe content with CSS fixes if enabled
   const updateIframeContent = React.useCallback(async () => {
     if (!iframeRef.current || !url || isLoadingPreview) return;
 
@@ -78,11 +72,17 @@ export function DevicePreview({
     }
   }, [url, cssPreviewEnabled, generatedCSS, isLoadingPreview]);
 
+  // Only update preview on URL change or manual refresh
   React.useEffect(() => {
     updateIframeContent();
   }, [url]);
 
   const handleRefresh = () => {
+    updateIframeContent();
+  };
+
+  const handleToggleCSS = () => {
+    setCssPreviewEnabled(!cssPreviewEnabled);
     updateIframeContent();
   };
 
@@ -114,7 +114,7 @@ export function DevicePreview({
 
   if (!url || !device || !screenSize) {
     return (
-      <Card className="w-full h-[400px] flex items-center justify-center text-slate-400">
+      <Card className="w-full h-[600px] flex items-center justify-center text-slate-400">
         Enter a URL and select a device to preview
       </Card>
     );
@@ -142,10 +142,7 @@ export function DevicePreview({
             <Button
               variant="outline"
               size="sm"
-              onClick={() => {
-                setCssPreviewEnabled(!cssPreviewEnabled);
-                updateIframeContent();
-              }}
+              onClick={handleToggleCSS}
               disabled={isLoadingPreview}
               className="gap-2"
             >
@@ -214,7 +211,7 @@ export function DevicePreview({
           cssEnabled={cssPreviewEnabled}
           cssContent={generatedCSS}
           onAnalysisComplete={(newResults) => {
-            onAnalysisComplete?.(newResults);
+            setResults(newResults);
             const criticalErrors = newResults.filter(r => r.type === 'error');
             if (criticalErrors.length > 0) {
               toast({
@@ -229,7 +226,7 @@ export function DevicePreview({
           <CSSFixPreview
             url={url}
             device={screenSize}
-            issues={analysisResults}
+            issues={results}
             onCSSGenerated={(css) => {
               setGeneratedCSS(css);
               setCssPreviewEnabled(true);

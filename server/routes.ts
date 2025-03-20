@@ -39,9 +39,7 @@ const aiAnalysisSchema = z.object({
     type: z.string(),
     description: z.string(),
     element: z.string().optional()
-  })),
-  cssEnabled: z.boolean().optional(),
-  cssContent: z.string().optional()
+  }))
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -159,9 +157,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const messages: ChatCompletionMessageParam[] = [
         {
           role: 'system',
-          content: `Analyze responsive design issues and provide concise solutions. 
-${data.cssEnabled ? 'IMPORTANT: CSS fixes have been applied, analyze the current state with these fixes.' : ''}
-Focus on:
+          content: `Analyze responsive design issues and provide concise solutions. Focus on:
 1. Critical fixes (layout breaks, content overflow)
 2. Key accessibility problems
 3. Most impactful responsive design improvements
@@ -172,12 +168,11 @@ Keep suggestions practical and focused.`
           content: `URL: ${data.url}
 Device: ${data.deviceInfo.width}x${data.deviceInfo.height}
 Type: ${data.deviceInfo.type}
-${data.cssEnabled ? '\nCSS Fixes Applied:\n' + data.cssContent : ''}
 
 Issues found:
 ${data.issues.map(issue => `- ${issue.type}: ${issue.description}`).join('\n')}
 
-${data.cssEnabled ? 'Analyze the current state with CSS fixes applied and identify any remaining issues or improvements needed.' : 'Provide a brief, actionable analysis focusing on critical issues first.'}`
+Provide a brief, actionable analysis focusing on critical issues first.`
         }
       ];
 
@@ -185,7 +180,7 @@ ${data.cssEnabled ? 'Analyze the current state with CSS fixes applied and identi
         model: "gpt-4",
         messages,
         temperature: 0.7,
-        max_tokens: 500
+        max_tokens: 500 // Reduced from 1000 for faster response
       });
 
       const aiAnalysis = completion.choices[0].message.content;
