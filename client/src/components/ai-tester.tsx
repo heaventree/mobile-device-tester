@@ -4,6 +4,8 @@ import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Loader2, AlertCircle, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { apiRequest } from '@/lib/queryClient';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Code } from 'lucide-react'; // Import missing Code icon
 
 interface TestResult {
   type: 'error' | 'warning' | 'success';
@@ -31,7 +33,7 @@ export function AITester({ url, device, onAnalysisComplete }: AITesterProps) {
     setError(null);
 
     try {
-      // Fetch page content through our proxy
+      // Quick initial analysis
       const proxyUrl = `/api/fetch-page?url=${encodeURIComponent(url)}`;
       const pageResponse = await fetch(proxyUrl);
       if (!pageResponse.ok) {
@@ -39,12 +41,10 @@ export function AITester({ url, device, onAnalysisComplete }: AITesterProps) {
       }
       const html = await pageResponse.text();
 
-      // Create a temporary div to parse the HTML
       const parser = new DOMParser();
       const doc = parser.parseFromString(html, 'text/html');
       const testResults: TestResult[] = [];
 
-      // Quick initial analysis
       // Test 1: Viewport Meta Tag
       const viewportMeta = doc.querySelector('meta[name="viewport"]');
       if (!viewportMeta) {
@@ -109,7 +109,7 @@ export function AITester({ url, device, onAnalysisComplete }: AITesterProps) {
         });
       }
 
-      // Set initial results immediately
+      // Set initial results and trigger callback
       setResults(testResults);
       onAnalysisComplete?.(testResults);
 
@@ -134,7 +134,6 @@ export function AITester({ url, device, onAnalysisComplete }: AITesterProps) {
         } catch (error) {
           console.error('AI Analysis error:', error);
           setError(error instanceof Error ? error.message : 'AI analysis failed');
-          // Don't fail the whole analysis if AI part fails
         }
       } else {
         setResults([{
@@ -197,6 +196,25 @@ export function AITester({ url, device, onAnalysisComplete }: AITesterProps) {
             </AlertDescription>
           </Alert>
         ))}
+
+        {/* AI Analysis Section */}
+        {aiAnalysis && (
+          <Collapsible>
+            <CollapsibleTrigger asChild>
+              <Button variant="outline" className="w-full justify-between">
+                <span>View AI Recommendations</span>
+                <Code className="h-4 w-4" />
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <Card className="mt-2 p-4">
+                <pre className="whitespace-pre-wrap text-sm">
+                  {aiAnalysis}
+                </pre>
+              </Card>
+            </CollapsibleContent>
+          </Collapsible>
+        )}
       </div>
     </div>
   );

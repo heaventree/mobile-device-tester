@@ -137,14 +137,14 @@ export function CSSFixPreview({ url, device, issues, onCSSGenerated }: CSSFixPre
 
       {fixes && stylesheet && !error && (
         <div className="space-y-4">
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button
-              variant="outline"
               size="sm"
               onClick={() => copyToClipboard(stylesheet)}
+              className="bg-purple-600 hover:bg-purple-700 text-white"
             >
               <Copy className="mr-2 h-4 w-4" />
-              Copy CSS
+              Copy All CSS
             </Button>
             <Button
               variant="outline"
@@ -212,7 +212,7 @@ export function CSSFixPreview({ url, device, issues, onCSSGenerated }: CSSFixPre
                           variant="outline"
                           size="sm"
                           className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                          onClick={() => copyToClipboard(`${rule.selector} { ${rule.css} }`)}
+                          onClick={() => copyToClipboard(`@media ${mq.query} { ${rule.selector} { ${rule.css} } }`)}
                         >
                           <Copy className="h-4 w-4" />
                         </Button>
