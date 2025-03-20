@@ -269,34 +269,34 @@ Please provide a comprehensive analysis following the structure specified, with 
 Generate CSS fixes that will be applied through a separate stylesheet to avoid modifying the original site.
 Focus on non-destructive, reversible changes.
 
-For each fix:
-1. Use specific selectors to target only problematic elements
-2. Include !important only when necessary
-3. Add comments explaining each fix
-4. Consider device-specific media queries (${data.deviceInfo.width}x${data.deviceInfo.height})
-
-Format the response as a JSON object with:
+Your response should be in this format:
 {
   "fixes": [
     {
-      "selector": "string",
-      "css": "string",
-      "description": "string",
-      "impact": "string"
+      "selector": "specific CSS selector",
+      "css": "CSS rules",
+      "description": "What this fix addresses",
+      "impact": "high/medium/low"
     }
   ],
   "mediaQueries": [
     {
-      "query": "string",
+      "query": "media query condition",
       "rules": [
         {
-          "selector": "string",
-          "css": "string"
+          "selector": "specific CSS selector",
+          "css": "CSS rules"
         }
       ]
     }
   ]
-}`
+}
+
+For each fix:
+1. Use specific selectors to target only problematic elements
+2. Include !important only when necessary
+3. Add comments explaining each fix
+4. Consider device-specific media queries (${data.deviceInfo.width}x${data.deviceInfo.height})`
         },
         {
           role: 'user',
@@ -312,7 +312,9 @@ Generate CSS fixes that will resolve these issues while ensuring the changes are
 1. Non-destructive to the original layout
 2. Specific to the problem areas
 3. Easily reversible
-4. Include appropriate media queries when needed`
+4. Include appropriate media queries when needed
+
+Return the response in the specified JSON format.`
         }
       ];
 
@@ -320,11 +322,21 @@ Generate CSS fixes that will resolve these issues while ensuring the changes are
         model: "gpt-4",
         messages,
         temperature: 0.7,
-        max_tokens: 1000,
-        response_format: { type: "json_object" }
+        max_tokens: 1000
       });
 
-      const cssFixResponse = JSON.parse(completion.choices[0].message.content);
+      const aiResponse = completion.choices[0].message.content;
+      let cssFixResponse;
+
+      try {
+        cssFixResponse = JSON.parse(aiResponse || '{}');
+      } catch (error) {
+        console.error('Failed to parse AI response:', error);
+        return res.status(500).json({
+          success: false,
+          message: 'Failed to parse AI response'
+        });
+      }
 
       // Generate a test stylesheet
       const stylesheet = `
@@ -332,21 +344,20 @@ Generate CSS fixes that will resolve these issues while ensuring the changes are
 /* Device: ${data.deviceInfo.width}x${data.deviceInfo.height} */
 /* These fixes are meant to be applied via a separate stylesheet */
 
-${cssFixResponse.fixes.map(fix => `
+${cssFixResponse.fixes?.map(fix => `
 /* ${fix.description} */
 /* Impact: ${fix.impact} */
 ${fix.selector} {
   ${fix.css}
-}`).join('\n')}
+}`).join('\n') || ''}
 
-${cssFixResponse.mediaQueries.map(mq => `
+${cssFixResponse.mediaQueries?.map(mq => `
 @media ${mq.query} {
   ${mq.rules.map(rule => `
   ${rule.selector} {
     ${rule.css}
   }`).join('\n')}
-}`).join('\n')}
-`;
+}`).join('\n') || ''}`;
 
       res.json({
         success: true,
@@ -363,11 +374,12 @@ ${cssFixResponse.mediaQueries.map(mq => `
   // Add button to toggle fixes
   const toggle = document.createElement('button');
   toggle.innerHTML = 'Toggle AI Fixes';
-  toggle.style.cssText = 'position:fixed;top:10px;right:10px;z-index:999999;padding:10px;';
+  toggle.style.cssText = 'position:fixed;top:10px;right:10px;z-index:999999;padding:10px;background:#4CAF50;color:white;border:none;border-radius:4px;cursor:pointer;box-shadow:0 2px 4px rgba(0,0,0,0.2);';
   toggle.onclick = function() {
     const sheet = document.getElementById('ai-responsive-fixes');
     sheet.disabled = !sheet.disabled;
     this.innerHTML = sheet.disabled ? 'Enable AI Fixes' : 'Disable AI Fixes';
+    this.style.backgroundColor = sheet.disabled ? '#4CAF50' : '#f44336';
   };
   document.body.appendChild(toggle);
 })();`
