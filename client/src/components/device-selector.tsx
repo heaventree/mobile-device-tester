@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Device, ScreenSize } from '@shared/schema';
 import { Skeleton } from '@/components/ui/skeleton';
 import { motion } from 'framer-motion';
-import { Phone, Tablet, Laptop, Monitor, Smartphone, RotateCcw } from 'lucide-react';
+import { Phone, Tablet, Laptop, Monitor, Smartphone, Maximize2, AlignVerticalJustifyCenter } from 'lucide-react';
 
 interface DeviceSelectorProps {
   onDeviceSelect: (device: Device, screenSize: ScreenSize) => void;
@@ -43,6 +43,15 @@ export function DeviceSelector({ onDeviceSelect }: DeviceSelectorProps) {
   const [selectedDevice, setSelectedDevice] = React.useState<Device | null>(null);
   const [isLandscape, setIsLandscape] = React.useState(false);
 
+  React.useEffect(() => {
+    if (selectedDevice) {
+      const screenSize = selectedDevice.screenSizes.length > 1 ? 
+        selectedDevice.screenSizes[isLandscape ? 1 : 0] : 
+        selectedDevice.screenSizes[0];
+      onDeviceSelect(selectedDevice, screenSize);
+    }
+  }, [selectedDevice, isLandscape, onDeviceSelect]);
+
   if (isLoading) {
     return <Skeleton className="w-full h-48" />;
   }
@@ -63,19 +72,13 @@ export function DeviceSelector({ onDeviceSelect }: DeviceSelectorProps) {
     const device = devices.find(d => d.id === deviceId);
     if (device) {
       setSelectedDevice(device);
-      // For devices with multiple orientations, use the appropriate size based on orientation
-      const screenSize = device.screenSizes.length > 1 ? 
-        device.screenSizes[isLandscape ? 1 : 0] : 
-        device.screenSizes[0];
-      onDeviceSelect(device, screenSize);
+      setIsLandscape(false); // Reset orientation when changing devices
     }
   };
 
   const handleOrientationToggle = () => {
     if (selectedDevice?.screenSizes.length === 2) {
-      const newIsLandscape = !isLandscape;
-      setIsLandscape(newIsLandscape);
-      onDeviceSelect(selectedDevice, selectedDevice.screenSizes[newIsLandscape ? 1 : 0]);
+      setIsLandscape(!isLandscape);
     }
   };
 
@@ -95,10 +98,13 @@ export function DeviceSelector({ onDeviceSelect }: DeviceSelectorProps) {
                 variant="ghost"
                 size="sm"
                 onClick={handleOrientationToggle}
-                className="text-slate-200 hover:text-slate-100"
+                className={`text-slate-200 hover:text-slate-100 ${isLandscape ? 'bg-slate-700/50' : ''}`}
+                title={isLandscape ? "Switch to portrait" : "Switch to landscape"}
               >
-                <RotateCcw className="h-4 w-4 mr-1" />
-                {isLandscape ? 'Portrait' : 'Landscape'}
+                {isLandscape ? 
+                  <AlignVerticalJustifyCenter className="h-4 w-4" /> : 
+                  <Maximize2 className="h-4 w-4" />
+                }
               </Button>
             )}
           </div>
