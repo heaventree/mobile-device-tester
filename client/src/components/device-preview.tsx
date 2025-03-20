@@ -86,6 +86,32 @@ export function DevicePreview({ url, device, screenSize }: DevicePreviewProps) {
     };
   }, [updateIframeContent]);
 
+  const captureScreenshot = async () => {
+    if (!containerRef.current || !device) return;
+
+    try {
+      const canvas = await html2canvas(containerRef.current.querySelector('.preview-container') as HTMLElement);
+      const image = canvas.toDataURL('image/png');
+
+      const link = document.createElement('a');
+      link.download = `${device.name.toLowerCase().replace(/\s+/g, '-')}-screenshot.png`;
+      link.href = image;
+      link.click();
+
+      toast({
+        title: "Screenshot captured!",
+        description: "Your screenshot has been downloaded.",
+      });
+    } catch (error) {
+      console.error('Screenshot error:', error);
+      toast({
+        title: "Screenshot failed",
+        description: "Failed to capture screenshot. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
   if (!url || !device || !screenSize) {
     return (
       <Card className="w-full h-[600px] flex items-center justify-center text-slate-400">
