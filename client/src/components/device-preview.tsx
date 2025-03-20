@@ -6,8 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Camera, Eye, EyeOff, Loader2, RefreshCw } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import { useToast } from '@/hooks/use-toast';
-import { AITester } from './ai-tester';
-import { CSSFixPreview } from './css-fix-preview';
+import { cn } from '@/lib/utils';
 
 interface DevicePreviewProps {
   url: string;
@@ -19,16 +18,14 @@ export function DevicePreview({ url, device, screenSize }: DevicePreviewProps) {
   const containerRef = React.useRef<HTMLDivElement>(null);
   const iframeRef = React.useRef<HTMLIFrameElement>(null);
   const [scale, setScale] = React.useState(1);
-  const [results, setResults] = React.useState([]);
-  const [cssPreviewEnabled, setCssPreviewEnabled] = React.useState(false);
-  const [generatedCSS, setGeneratedCSS] = React.useState<string | null>(null);
   const [isLoadingPreview, setIsLoadingPreview] = React.useState(false);
+  const [cssEnabled, setCssEnabled] = React.useState(false);
   const { toast } = useToast();
 
   const updateScale = React.useCallback(() => {
     if (containerRef.current && screenSize) {
-      const containerHeight = 600;
-      const containerWidth = containerRef.current.clientWidth;
+      const containerWidth = 400; // Fixed width for device preview
+      const containerHeight = 600; // Max height for device preview
       const scaleX = containerWidth / screenSize.width;
       const scaleY = containerHeight / screenSize.height;
       setScale(Math.min(scaleX, scaleY, 1));
@@ -41,7 +38,6 @@ export function DevicePreview({ url, device, screenSize }: DevicePreviewProps) {
     return () => window.removeEventListener('resize', updateScale);
   }, [updateScale]);
 
-  // Update iframe content with CSS fixes if enabled
   const updateIframeContent = React.useCallback(async () => {
     if (!iframeRef.current || !url || isLoadingPreview) return;
 
@@ -56,23 +52,14 @@ export function DevicePreview({ url, device, screenSize }: DevicePreviewProps) {
 
       doc.open();
       doc.write(html);
-
-      if (cssPreviewEnabled && generatedCSS) {
-        const style = doc.createElement('style');
-        style.id = 'ai-responsive-fixes';
-        style.textContent = generatedCSS;
-        doc.head.appendChild(style);
-      }
-
       doc.close();
     } catch (error) {
       console.error('Error updating preview:', error);
     } finally {
       setIsLoadingPreview(false);
     }
-  }, [url, cssPreviewEnabled, generatedCSS, isLoadingPreview]);
+  }, [url, isLoadingPreview]);
 
-  // Only update preview on URL change or manual refresh
   React.useEffect(() => {
     updateIframeContent();
   }, [url]);
@@ -81,50 +68,35 @@ export function DevicePreview({ url, device, screenSize }: DevicePreviewProps) {
     updateIframeContent();
   };
 
-  const handleToggleCSS = () => {
-    setCssPreviewEnabled(!cssPreviewEnabled);
-    updateIframeContent();
-  };
+  const getDeviceStyle = () => {
+    if (!device) return {};
 
-  const captureScreenshot = async () => {
-    if (!containerRef.current || !device) return;
+    const isPhone = device.type === 'phone';
+    const isTablet = device.type === 'tablet';
 
-    try {
-      const canvas = await html2canvas(containerRef.current.querySelector('.preview-container') as HTMLElement);
-      const image = canvas.toDataURL('image/png');
-
-      const link = document.createElement('a');
-      link.download = `${device.name.toLowerCase().replace(/\s+/g, '-')}-screenshot.png`;
-      link.href = image;
-      link.click();
-
-      toast({
-        title: "Screenshot captured!",
-        description: "Your screenshot has been downloaded.",
-      });
-    } catch (error) {
-      console.error('Screenshot error:', error);
-      toast({
-        title: "Screenshot failed",
-        description: "Failed to capture screenshot. Please try again.",
-        variant: "destructive"
-      });
-    }
+    return {
+      borderRadius: isPhone ? '2rem' : isTablet ? '1.5rem' : '0.5rem',
+      boxShadow: isPhone || isTablet ? 
+        '0 0 0 10px rgba(0,0,0,0.2), 0 20px 40px rgba(0,0,0,0.4)' : 
+        '0 10px 30px rgba(0,0,0,0.2)',
+      background: 'black',
+      padding: isPhone ? '1rem' : isTablet ? '0.75rem' : '0.5rem',
+    };
   };
 
   if (!url || !device || !screenSize) {
     return (
-      <Card className="w-full h-[600px] flex items-center justify-center text-slate-400">
+      <Card className="w-full h-[400px] flex items-center justify-center text-slate-400 bg-slate-800/50">
         Enter a URL and select a device to preview
       </Card>
     );
   }
 
   return (
-    <Card className="w-full overflow-hidden">
-      <div className="p-4 bg-slate-800/50 border-b border-slate-700 flex items-center justify-between">
+    <Card className="bg-slate-800/50 backdrop-blur-sm border-slate-700 overflow-hidden">
+      <div className="p-4 border-b border-slate-700 flex items-center justify-between">
         <div className="text-sm font-medium text-slate-200">
-          {device.name} - {screenSize.width}x{screenSize.height}
+          {device.name}
         </div>
         <div className="flex items-center gap-2">
           <Button
@@ -135,105 +107,58 @@ export function DevicePreview({ url, device, screenSize }: DevicePreviewProps) {
             className="gap-2"
           >
             <RefreshCw className={`h-4 w-4 ${isLoadingPreview ? 'animate-spin' : ''}`} />
-            Refresh
           </Button>
-
-          {generatedCSS && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleToggleCSS}
-              disabled={isLoadingPreview}
-              className="gap-2"
-            >
-              {isLoadingPreview ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : cssPreviewEnabled ? (
-                <>
-                  <EyeOff className="h-4 w-4" />
-                  Disable CSS Fixes
-                </>
-              ) : (
-                <>
-                  <Eye className="h-4 w-4" />
-                  Preview CSS Fixes
-                </>
-              )}
-            </Button>
-          )}
           <Button
             variant="outline"
             size="sm"
-            onClick={captureScreenshot}
+            onClick={() => setCssEnabled(!cssEnabled)}
+            disabled={isLoadingPreview}
             className="gap-2"
           >
-            <Camera className="h-4 w-4" />
-            Capture
+            {isLoadingPreview ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : cssEnabled ? (
+              <EyeOff className="h-4 w-4" />
+            ) : (
+              <Eye className="h-4 w-4" />
+            )}
           </Button>
         </div>
       </div>
 
       <div 
         ref={containerRef}
-        className="relative w-full flex items-center justify-center bg-slate-900/50"
-        style={{ height: '600px' }}
+        className="relative flex items-center justify-center bg-black p-4"
       >
         <motion.div
-          className="preview-container"
+          className={cn(
+            "preview-container relative bg-white",
+            device.type === 'phone' && "rounded-[2rem]",
+            device.type === 'tablet' && "rounded-[1.5rem]"
+          )}
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.2 }}
           style={{
+            ...getDeviceStyle(),
             transform: `scale(${scale})`,
             transformOrigin: 'center',
             width: `${screenSize.width}px`,
             height: `${screenSize.height}px`,
+            maxWidth: '100%',
+            maxHeight: '600px'
           }}
         >
           <iframe
             ref={iframeRef}
+            className="w-full h-full rounded-[inherit]"
             style={{
-              width: '100%',
-              height: '100%',
               border: '1px solid rgba(148, 163, 184, 0.1)',
-              borderRadius: '4px',
               backgroundColor: 'white'
             }}
             title="Website Preview"
           />
         </motion.div>
-      </div>
-
-      <div className="p-4 border-t border-slate-700 space-y-4">
-        <AITester 
-          url={url}
-          device={screenSize}
-          cssEnabled={cssPreviewEnabled}
-          cssContent={generatedCSS}
-          onAnalysisComplete={(newResults) => {
-            setResults(newResults);
-            const criticalErrors = newResults.filter(r => r.type === 'error');
-            if (criticalErrors.length > 0) {
-              toast({
-                title: "Critical Issues Found",
-                description: `Found ${criticalErrors.length} critical responsive design issues.`,
-                variant: "destructive"
-              });
-            }
-          }}
-        />
-        <div className="mt-4 pt-4 border-t border-slate-700">
-          <CSSFixPreview
-            url={url}
-            device={screenSize}
-            issues={results}
-            onCSSGenerated={(css) => {
-              setGeneratedCSS(css);
-              setCssPreviewEnabled(true);
-              updateIframeContent();
-            }}
-          />
-        </div>
       </div>
     </Card>
   );

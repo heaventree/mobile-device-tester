@@ -4,6 +4,7 @@ import { DeviceSelector } from '@/components/device-selector';
 import { DevicePreview } from '@/components/device-preview';
 import type { Device, ScreenSize } from '@shared/schema';
 import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 
@@ -34,10 +35,8 @@ export default function Home() {
     if (!url || !selectedDevice) return;
 
     try {
-      // First validate the URL
       await apiRequest('POST', '/api/validate-url', { url });
 
-      // If we're testing from WordPress, record the test
       const params = new URLSearchParams(window.location.search);
       const pageId = params.get('page_id');
       if (pageId) {
@@ -63,7 +62,7 @@ export default function Home() {
   React.useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const urlParam = params.get('url');
-    const deviceParam = params.get('devices')?.split(',')[0]; // Get first device if multiple specified
+    const deviceParam = params.get('devices')?.split(',')[0];
 
     if (urlParam) {
       setUrl(urlParam);
@@ -75,7 +74,6 @@ export default function Home() {
         const data = await response.json();
         setDevices(data);
 
-        // Auto-select device based on URL parameter or first device
         if (data.length > 0) {
           const deviceToSelect = deviceParam ? 
             data.find(d => d.id === deviceParam) : 
@@ -94,9 +92,9 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-800 via-slate-700 to-slate-800 p-4">
-      <div className="max-w-7xl mx-auto space-y-4">
-        {/* Main toolbar */}
-        <div className="flex items-center gap-4">
+      <div className="max-w-[1600px] mx-auto space-y-4">
+        {/* Top toolbar */}
+        <div className="flex items-center gap-4 bg-slate-800/50 backdrop-blur-sm rounded-xl border border-slate-700 p-4">
           <div className="w-[280px]">
             <URLInput onValidURL={setUrl} />
           </div>
@@ -109,39 +107,64 @@ export default function Home() {
           <Button
             onClick={handleTest}
             disabled={!url || !selectedDevice}
-            style={{ backgroundColor: '#795EFF', color: '#FFFFFF', fontWeight: 'semibold', padding: '8px 16px', width: '100px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}
+            className="bg-purple-600 hover:bg-purple-700 text-white font-semibold px-6"
           >
             Test
           </Button>
         </div>
 
-        {/* Quick device buttons */}
-        <div className="flex items-center gap-2 flex-wrap">
-          {QUICK_DEVICES.map((device) => (
-            <Button
-              key={device.id}
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                const foundDevice = devices?.find(d => d.id === device.id);
-                if (foundDevice) {
-                  handleDeviceSelect(foundDevice, foundDevice.screenSizes[0]);
-                }
-              }}
-              style={{ color: 'slategray' }}
-            >
-              {device.label}
-            </Button>
-          ))}
-        </div>
+        {/* Main content area */}
+        <div className="flex gap-4">
+          {/* Left side - Device preview */}
+          <div className="w-[400px] flex-shrink-0">
+            <DevicePreview
+              url={url}
+              device={selectedDevice}
+              screenSize={selectedScreenSize}
+            />
 
-        {/* Preview area */}
-        <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl border border-slate-700">
-          <DevicePreview
-            url={url}
-            device={selectedDevice}
-            screenSize={selectedScreenSize}
-          />
+            {/* Quick device buttons */}
+            <div className="mt-4 flex flex-wrap gap-2 bg-slate-800/50 backdrop-blur-sm rounded-xl border border-slate-700 p-4">
+              {QUICK_DEVICES.map((device) => (
+                <Button
+                  key={device.id}
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    const foundDevice = devices?.find(d => d.id === device.id);
+                    if (foundDevice) {
+                      handleDeviceSelect(foundDevice, foundDevice.screenSizes[0]);
+                    }
+                  }}
+                  className="text-slate-300 hover:text-white hover:bg-slate-700"
+                >
+                  {device.label}
+                </Button>
+              ))}
+            </div>
+          </div>
+
+          {/* Right side - Analysis and tools */}
+          <div className="flex-1 bg-slate-800/50 backdrop-blur-sm rounded-xl border border-slate-700">
+            <Tabs defaultValue="analysis" className="w-full">
+              <TabsList className="w-full border-b border-slate-700">
+                <TabsTrigger value="analysis" className="flex-1">Analysis</TabsTrigger>
+                <TabsTrigger value="css" className="flex-1">CSS Fixes</TabsTrigger>
+                <TabsTrigger value="debug" className="flex-1">Debug</TabsTrigger>
+              </TabsList>
+              <div className="p-4">
+                <TabsContent value="analysis" className="mt-0">
+                  {/* AI Analysis content will be rendered here */}
+                </TabsContent>
+                <TabsContent value="css" className="mt-0">
+                  {/* CSS Fixes content will be rendered here */}
+                </TabsContent>
+                <TabsContent value="debug" className="mt-0">
+                  {/* Debug information will be rendered here */}
+                </TabsContent>
+              </div>
+            </Tabs>
+          </div>
         </div>
       </div>
     </div>
