@@ -42,84 +42,60 @@ export default function Home() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-8">
-      <motion.div 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="max-w-7xl mx-auto space-y-8"
-      >
-        <div className="space-y-4 text-center">
-          <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 text-transparent bg-clip-text">
-            Mobile Device Testing Platform
-          </h1>
-          <p className="text-lg text-slate-300 max-w-2xl mx-auto">
-            Test your website across different devices and screen sizes with our intuitive testing platform
-          </p>
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4">
+      <div className="max-w-7xl mx-auto space-y-4">
+        {/* Main toolbar */}
+        <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl p-4 border border-slate-700 flex items-center gap-4">
+          <div className="w-[350px]">
+            <URLInput onValidURL={setUrl} />
+          </div>
+          <div className="w-[280px]">
+            <DeviceSelector onDeviceSelect={handleDeviceSelect} />
+          </div>
+          <Button 
+            onClick={() => {
+              if (url && selectedDevice) {
+                console.log("Testing with URL:", url, "and Device:", selectedDevice);
+              }
+            }}
+            disabled={!url || !selectedDevice}
+            className="ml-auto"
+          >
+            Test Website
+          </Button>
         </div>
 
-        <div className="space-y-4">
-          <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl p-6 shadow-xl border border-slate-700">
-            <div className="flex items-center gap-4">
-              <div className="flex-1 flex items-center gap-6">
-                <div className="w-[350px]">
-                  <URLInput onValidURL={setUrl} />
-                </div>
-
-                <div className="flex-1 flex items-center gap-2 px-4 border-x border-slate-700">
-                  {QUICK_DEVICES.map((device) => (
-                    <Button
-                      key={device.id}
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        const foundDevice = devices?.find(d => d.id === device.id);
-                        if (foundDevice) {
-                          handleDeviceSelect(foundDevice, foundDevice.screenSizes[0]);
-                        }
-                      }}
-                      className="text-slate-300 hover:text-slate-100 whitespace-nowrap"
-                    >
-                      {device.label}
-                    </Button>
-                  ))}
-                </div>
-
-                <div className="w-[280px]">
-                  <DeviceSelector onDeviceSelect={handleDeviceSelect} />
-                </div>
-              </div>
-
-              <Button 
+        {/* Quick device buttons */}
+        <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl p-2 border border-slate-700">
+          <div className="flex items-center justify-center gap-2 flex-wrap">
+            {QUICK_DEVICES.map((device) => (
+              <Button
+                key={device.id}
+                variant="ghost"
+                size="sm"
                 onClick={() => {
-                  // Added a placeholder for onValidURL.  This needs to be defined elsewhere.
-                  if (url && selectedDevice) {
-                    console.log("Testing with URL:", url, "and Device:", selectedDevice); // Replace with actual testing logic.
+                  const foundDevice = devices?.find(d => d.id === device.id);
+                  if (foundDevice) {
+                    handleDeviceSelect(foundDevice, foundDevice.screenSizes[0]);
                   }
                 }}
-                disabled={!url || !selectedDevice}
-                className="min-w-[100px]"
+                className="text-slate-300 hover:text-slate-100"
               >
-                Test Website
+                {device.label}
               </Button>
-            </div>
+            ))}
           </div>
-
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-          >
-            <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl shadow-xl border border-slate-700">
-              <DevicePreview 
-                url={url}
-                device={selectedDevice}
-                screenSize={selectedScreenSize}
-              />
-            </div>
-          </motion.div>
         </div>
-      </motion.div>
+
+        {/* Preview area */}
+        <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl border border-slate-700">
+          <DevicePreview 
+            url={url}
+            device={selectedDevice}
+            screenSize={selectedScreenSize}
+          />
+        </div>
+      </div>
     </div>
   );
 }
