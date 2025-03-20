@@ -24,8 +24,8 @@ export function DevicePreview({ url, device, screenSize }: DevicePreviewProps) {
 
   const updateScale = React.useCallback(() => {
     if (containerRef.current && screenSize) {
-      const containerWidth = 400; // Fixed width for device preview
-      const containerHeight = 600; // Max height for device preview
+      const containerWidth = 600; // Increased for better landscape support
+      const containerHeight = 800; // Increased max height
       const scaleX = containerWidth / screenSize.width;
       const scaleY = containerHeight / screenSize.height;
       setScale(Math.min(scaleX, scaleY, 1));
@@ -73,14 +73,18 @@ export function DevicePreview({ url, device, screenSize }: DevicePreviewProps) {
 
     const isPhone = device.type === 'phone';
     const isTablet = device.type === 'tablet';
+    const isLandscape = screenSize && screenSize.width > screenSize.height;
 
     return {
       borderRadius: isPhone ? '2rem' : isTablet ? '1.5rem' : '0.5rem',
       boxShadow: isPhone || isTablet ? 
-        '0 0 0 10px rgba(0,0,0,0.2), 0 20px 40px rgba(0,0,0,0.4)' : 
+        '0 0 0 12px rgba(0,0,0,0.2), 0 20px 40px rgba(0,0,0,0.4), inset 0 0 0 2px rgba(255,255,255,0.05)' : 
         '0 10px 30px rgba(0,0,0,0.2)',
       background: 'black',
-      padding: isPhone ? '1rem' : isTablet ? '0.75rem' : '0.5rem',
+      padding: isPhone ? (isLandscape ? '0.75rem' : '1rem') : 
+               isTablet ? (isLandscape ? '0.75rem' : '1rem') : 
+               '0.5rem',
+      transition: 'all 0.3s ease',
     };
   };
 
@@ -96,7 +100,7 @@ export function DevicePreview({ url, device, screenSize }: DevicePreviewProps) {
     <Card className="bg-slate-800/50 backdrop-blur-sm border-slate-700 overflow-hidden">
       <div className="p-4 border-b border-slate-700 flex items-center justify-between">
         <div className="text-sm font-medium text-slate-200">
-          {device.name}
+          {device.name} - {screenSize?.width}x{screenSize?.height}
         </div>
         <div className="flex items-center gap-2">
           <Button
@@ -104,7 +108,7 @@ export function DevicePreview({ url, device, screenSize }: DevicePreviewProps) {
             size="sm"
             onClick={handleRefresh}
             disabled={isLoadingPreview}
-            className="gap-2"
+            className="gap-2 text-slate-400 hover:text-white transition-colors"
           >
             <RefreshCw className={`h-4 w-4 ${isLoadingPreview ? 'animate-spin' : ''}`} />
           </Button>
@@ -113,7 +117,7 @@ export function DevicePreview({ url, device, screenSize }: DevicePreviewProps) {
             size="sm"
             onClick={() => setCssEnabled(!cssEnabled)}
             disabled={isLoadingPreview}
-            className="gap-2"
+            className="gap-2 text-slate-400 hover:text-white transition-colors"
           >
             {isLoadingPreview ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -128,7 +132,8 @@ export function DevicePreview({ url, device, screenSize }: DevicePreviewProps) {
 
       <div 
         ref={containerRef}
-        className="relative flex items-center justify-center bg-black p-4"
+        className="relative flex items-center justify-center bg-black p-6"
+        style={{ minHeight: '400px', maxHeight: '800px' }}
       >
         <motion.div
           className={cn(
@@ -143,10 +148,10 @@ export function DevicePreview({ url, device, screenSize }: DevicePreviewProps) {
             ...getDeviceStyle(),
             transform: `scale(${scale})`,
             transformOrigin: 'center',
-            width: `${screenSize.width}px`,
-            height: `${screenSize.height}px`,
+            width: `${screenSize?.width}px`,
+            height: `${screenSize?.height}px`,
             maxWidth: '100%',
-            maxHeight: '600px'
+            maxHeight: '100%'
           }}
         >
           <iframe

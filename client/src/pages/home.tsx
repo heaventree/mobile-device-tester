@@ -92,7 +92,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-800 via-slate-700 to-slate-800 p-4">
-      <div className="max-w-[1600px] mx-auto space-y-4">
+      <div className="max-w-[1800px] mx-auto space-y-4">
         {/* Top toolbar */}
         <div className="flex items-center gap-4 bg-slate-800/50 backdrop-blur-sm rounded-xl border border-slate-700 p-4">
           <div className="w-[280px]">
@@ -113,54 +113,71 @@ export default function Home() {
           </Button>
         </div>
 
+        {/* Quick device buttons */}
+        <div className="flex flex-wrap gap-2 bg-slate-800/50 backdrop-blur-sm rounded-xl border border-slate-700 p-4">
+          {QUICK_DEVICES.map((device) => (
+            <Button
+              key={device.id}
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                const foundDevice = devices?.find(d => d.id === device.id);
+                if (foundDevice) {
+                  handleDeviceSelect(foundDevice, foundDevice.screenSizes[0]);
+                }
+              }}
+              className="text-slate-300 hover:text-white hover:bg-slate-700/50 transition-colors"
+            >
+              {device.label}
+            </Button>
+          ))}
+        </div>
+
         {/* Main content area */}
-        <div className="flex gap-4">
+        <div className="flex gap-6">
           {/* Left side - Device preview */}
-          <div className="w-[400px] flex-shrink-0">
+          <div className="w-[600px] flex-shrink-0">
             <DevicePreview
               url={url}
               device={selectedDevice}
               screenSize={selectedScreenSize}
             />
-
-            {/* Quick device buttons */}
-            <div className="mt-4 flex flex-wrap gap-2 bg-slate-800/50 backdrop-blur-sm rounded-xl border border-slate-700 p-4">
-              {QUICK_DEVICES.map((device) => (
-                <Button
-                  key={device.id}
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    const foundDevice = devices?.find(d => d.id === device.id);
-                    if (foundDevice) {
-                      handleDeviceSelect(foundDevice, foundDevice.screenSizes[0]);
-                    }
-                  }}
-                  className="text-slate-300 hover:text-white hover:bg-slate-700"
-                >
-                  {device.label}
-                </Button>
-              ))}
-            </div>
           </div>
 
           {/* Right side - Analysis and tools */}
-          <div className="flex-1 bg-slate-800/50 backdrop-blur-sm rounded-xl border border-slate-700">
+          <div className="flex-1 bg-slate-800/50 backdrop-blur-sm rounded-xl border border-slate-700 overflow-hidden">
             <Tabs defaultValue="analysis" className="w-full">
-              <TabsList className="w-full border-b border-slate-700">
-                <TabsTrigger value="analysis" className="flex-1">Analysis</TabsTrigger>
-                <TabsTrigger value="css" className="flex-1">CSS Fixes</TabsTrigger>
-                <TabsTrigger value="debug" className="flex-1">Debug</TabsTrigger>
-              </TabsList>
+              <div className="px-4 pt-4">
+                <TabsList className="w-full grid grid-cols-3 gap-4 bg-transparent">
+                  <TabsTrigger 
+                    value="analysis" 
+                    className="data-[state=active]:bg-purple-600 data-[state=active]:text-white px-8 rounded-lg transition-all"
+                  >
+                    Analysis
+                  </TabsTrigger>
+                  <TabsTrigger 
+                    value="css" 
+                    className="data-[state=active]:bg-purple-600 data-[state=active]:text-white px-8 rounded-lg transition-all"
+                  >
+                    CSS Fixes
+                  </TabsTrigger>
+                  <TabsTrigger 
+                    value="debug" 
+                    className="data-[state=active]:bg-purple-600 data-[state=active]:text-white px-8 rounded-lg transition-all"
+                  >
+                    Debug
+                  </TabsTrigger>
+                </TabsList>
+              </div>
               <div className="p-4">
-                <TabsContent value="analysis" className="mt-0">
-                  {/* AI Analysis content will be rendered here */}
+                <TabsContent value="analysis" className="mt-0 space-y-4">
+                  {/* AI Analysis content */}
                 </TabsContent>
-                <TabsContent value="css" className="mt-0">
-                  {/* CSS Fixes content will be rendered here */}
+                <TabsContent value="css" className="mt-0 space-y-4">
+                  {/* CSS Fixes content */}
                 </TabsContent>
-                <TabsContent value="debug" className="mt-0">
-                  {/* Debug information will be rendered here */}
+                <TabsContent value="debug" className="mt-0 space-y-4">
+                  {/* Debug information */}
                 </TabsContent>
               </div>
             </Tabs>
