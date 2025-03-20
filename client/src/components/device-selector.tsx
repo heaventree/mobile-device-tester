@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Device, ScreenSize } from '@shared/schema';
 import { Skeleton } from '@/components/ui/skeleton';
 import { motion } from 'framer-motion';
-import { Phone, Tablet, Laptop, Monitor, Maximize2, AlignVerticalJustifyCenter } from 'lucide-react';
+import { Phone, Tablet, Laptop, Monitor } from 'lucide-react';
 
 interface DeviceSelectorProps {
   onDeviceSelect: (device: Device, screenSize: ScreenSize) => void;
@@ -91,6 +91,9 @@ export function DeviceSelector({ onDeviceSelect }: DeviceSelectorProps) {
     }
   };
 
+  // Check if the device type supports orientation changes
+  const showOrientationToggle = selectedDevice?.type === 'phone' || selectedDevice?.type === 'tablet';
+
   return (
     <Card className="w-full border-0 bg-transparent">
       <CardContent className="pt-6 space-y-6">
@@ -102,7 +105,7 @@ export function DeviceSelector({ onDeviceSelect }: DeviceSelectorProps) {
         >
           <div className="flex items-center justify-between">
             <label className="text-sm font-medium text-slate-200">Select Device</label>
-            {selectedDevice?.screenSizes.length === 2 && (
+            {showOrientationToggle && selectedDevice?.screenSizes.length === 2 && (
               <div className="flex gap-2">
                 <Button
                   variant="ghost"
