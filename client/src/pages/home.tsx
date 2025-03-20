@@ -3,7 +3,6 @@ import { URLInput } from '@/components/url-input';
 import { DeviceSelector } from '@/components/device-selector';
 import { DevicePreview } from '@/components/device-preview';
 import type { Device, ScreenSize } from '@shared/schema';
-import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 
 const QUICK_DEVICES = [
@@ -45,7 +44,7 @@ export default function Home() {
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4">
       <div className="max-w-7xl mx-auto space-y-4">
         {/* Main toolbar */}
-        <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl p-4 border border-slate-700 flex items-center gap-4">
+        <div className="flex items-center gap-4">
           <div className="w-[350px]">
             <URLInput onValidURL={setUrl} />
           </div>
@@ -66,25 +65,23 @@ export default function Home() {
         </div>
 
         {/* Quick device buttons */}
-        <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl p-2 border border-slate-700">
-          <div className="flex items-center justify-center gap-2 flex-wrap">
-            {QUICK_DEVICES.map((device) => (
-              <Button
-                key={device.id}
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  const foundDevice = devices?.find(d => d.id === device.id);
-                  if (foundDevice) {
-                    handleDeviceSelect(foundDevice, foundDevice.screenSizes[0]);
-                  }
-                }}
-                className="text-slate-300 hover:text-slate-100"
-              >
-                {device.label}
-              </Button>
-            ))}
-          </div>
+        <div className="flex items-center gap-2 flex-wrap">
+          {QUICK_DEVICES.map((device) => (
+            <Button
+              key={device.id}
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                const foundDevice = devices?.find(d => d.id === device.id);
+                if (foundDevice) {
+                  handleDeviceSelect(foundDevice, foundDevice.screenSizes[0]);
+                }
+              }}
+              className="text-slate-300 hover:text-slate-100"
+            >
+              {device.label}
+            </Button>
+          ))}
         </div>
 
         {/* Preview area */}
