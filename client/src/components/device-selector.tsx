@@ -35,6 +35,17 @@ const DeviceIcon = ({ type }: { type: string }) => {
   }
 };
 
+const TOP_DEVICES = [
+  'iphone-15-pro-max',
+  'iphone-15',
+  'samsung-s24-ultra',
+  'pixel-8-pro',
+  'ipad-pro-13',
+  'samsung-tab-s9-ultra',
+  'macbook-pro-16',
+  'desktop-1440p'
+];
+
 export function DeviceSelector({ onDeviceSelect }: DeviceSelectorProps) {
   const { data: devices, isLoading } = useQuery<Device[]>({ 
     queryKey: ['/api/devices']
@@ -60,7 +71,11 @@ export function DeviceSelector({ onDeviceSelect }: DeviceSelectorProps) {
     return <div className="text-center text-slate-400">No devices available</div>;
   }
 
-  const devicesByType = devices.reduce((acc, device) => {
+  // Split devices into top devices and others
+  const topDevices = devices.filter(d => TOP_DEVICES.includes(d.id));
+  const otherDevices = devices.filter(d => !TOP_DEVICES.includes(d.id));
+
+  const devicesByType = otherDevices.reduce((acc, device) => {
     if (!acc[device.type]) {
       acc[device.type] = [];
     }
@@ -72,13 +87,7 @@ export function DeviceSelector({ onDeviceSelect }: DeviceSelectorProps) {
     const device = devices.find(d => d.id === deviceId);
     if (device) {
       setSelectedDevice(device);
-      setIsLandscape(false); // Reset orientation when changing devices
-    }
-  };
-
-  const handleOrientationToggle = () => {
-    if (selectedDevice?.screenSizes.length === 2) {
-      setIsLandscape(!isLandscape);
+      setIsLandscape(false);
     }
   };
 
@@ -94,47 +103,75 @@ export function DeviceSelector({ onDeviceSelect }: DeviceSelectorProps) {
           <div className="flex items-center justify-between">
             <label className="text-sm font-medium text-slate-200">Select Device</label>
             {selectedDevice?.screenSizes.length === 2 && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleOrientationToggle}
-                className={`text-slate-200 hover:text-slate-100 ${isLandscape ? 'bg-slate-700/50' : ''}`}
-                title={isLandscape ? "Switch to portrait" : "Switch to landscape"}
-              >
-                {isLandscape ? 
-                  <AlignVerticalJustifyCenter className="h-4 w-4" /> : 
+              <div className="flex gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setIsLandscape(false)}
+                  className={`text-slate-200 hover:text-slate-100 ${!isLandscape ? 'bg-slate-700/50' : ''}`}
+                  title="Portrait orientation"
+                >
+                  <AlignVerticalJustifyCenter className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setIsLandscape(true)}
+                  className={`text-slate-200 hover:text-slate-100 ${isLandscape ? 'bg-slate-700/50' : ''}`}
+                  title="Landscape orientation"
+                >
                   <Maximize2 className="h-4 w-4" />
-                }
-              </Button>
+                </Button>
+              </div>
             )}
           </div>
+
           <Select onValueChange={handleDeviceChange}>
             <SelectTrigger className="w-full bg-slate-700/50 border-slate-600 text-slate-200">
               <SelectValue placeholder="Choose a device" />
             </SelectTrigger>
             <SelectContent className="bg-slate-800 border-slate-700">
-              {Object.entries(devicesByType).map(([type, devices]) => (
-                <SelectGroup key={type}>
-                  <SelectLabel className="text-slate-400 flex items-center gap-2">
-                    <DeviceIcon type={type} />
-                    {type.charAt(0).toUpperCase() + type.slice(1)}s
-                  </SelectLabel>
-                  {devices.map((device) => (
-                    <SelectItem 
-                      key={device.id} 
-                      value={device.id}
-                      className="text-slate-200 hover:bg-slate-700 focus:bg-slate-700"
-                    >
-                      <span className="flex items-center gap-2">
-                        {device.name}
-                        <span className="text-xs text-slate-400">
-                          {device.screenSizes[0].width}x{device.screenSizes[0].height}
-                        </span>
+              <SelectGroup>
+                <SelectLabel className="text-slate-400">Popular Devices</SelectLabel>
+                {topDevices.map((device) => (
+                  <SelectItem 
+                    key={device.id} 
+                    value={device.id}
+                    className="text-slate-200 hover:bg-slate-700 focus:bg-slate-700"
+                  >
+                    <span className="flex items-center gap-2">
+                      <DeviceIcon type={device.type} />
+                      {device.name}
+                      <span className="text-xs text-slate-400">
+                        {device.screenSizes[0].width}x{device.screenSizes[0].height}
                       </span>
-                    </SelectItem>
-                  ))}
-                </SelectGroup>
-              ))}
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+
+              <SelectGroup>
+                <SelectLabel className="text-slate-400 pt-2">More Devices</SelectLabel>
+                {Object.entries(devicesByType).map(([type, devices]) => (
+                  <React.Fragment key={type}>
+                    {devices.map((device) => (
+                      <SelectItem 
+                        key={device.id} 
+                        value={device.id}
+                        className="text-slate-200 hover:bg-slate-700 focus:bg-slate-700"
+                      >
+                        <span className="flex items-center gap-2">
+                          <DeviceIcon type={device.type} />
+                          {device.name}
+                          <span className="text-xs text-slate-400">
+                            {device.screenSizes[0].width}x{device.screenSizes[0].height}
+                          </span>
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </React.Fragment>
+                ))}
+              </SelectGroup>
             </SelectContent>
           </Select>
         </motion.div>
