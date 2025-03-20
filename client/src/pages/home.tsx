@@ -4,7 +4,6 @@ import { DeviceSelector } from '@/components/device-selector';
 import { DevicePreview } from '@/components/device-preview';
 import type { Device, ScreenSize } from '@shared/schema';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 import { AITester } from '@/components/ai-tester';
@@ -135,73 +134,15 @@ export default function Home() {
           ))}
         </div>
 
-        {/* Main Content Area */}
-        <div className="flex gap-6">
-          {/* Left Side - Device Preview */}
-          <div className="w-[500px] flex-shrink-0">
-            <DevicePreview
-              url={url}
-              device={selectedDevice}
-              screenSize={selectedScreenSize}
-            />
-          </div>
-
-          {/* Right Side - Analysis Tools */}
-          <div className="flex-1 bg-slate-800/50 backdrop-blur-sm rounded-xl border border-slate-700 overflow-hidden">
-            <Tabs defaultValue="analysis" className="w-full">
-              <div className="px-4 pt-4">
-                <TabsList className="w-full grid grid-cols-3 gap-4 bg-transparent">
-                  <TabsTrigger
-                    value="analysis"
-                    className="data-[state=active]:bg-purple-600 data-[state=active]:text-white px-8 rounded-lg transition-all"
-                  >
-                    Analysis
-                  </TabsTrigger>
-                  <TabsTrigger
-                    value="css"
-                    className="data-[state=active]:bg-purple-600 data-[state=active]:text-white px-8 rounded-lg transition-all"
-                  >
-                    CSS Fixes
-                  </TabsTrigger>
-                  <TabsTrigger
-                    value="debug"
-                    className="data-[state=active]:bg-purple-600 data-[state=active]:text-white px-8 rounded-lg transition-all"
-                  >
-                    Debug
-                  </TabsTrigger>
-                </TabsList>
-              </div>
-              <div className="p-4">
-                <TabsContent value="analysis" className="mt-0 space-y-4">
-                  <AITester
-                    url={url}
-                    device={{
-                      width: selectedScreenSize?.width || 0,
-                      height: selectedScreenSize?.height || 0
-                    }}
-                    onAnalysisComplete={(results) => {
-                      // Handle analysis results
-                    }}
-                  />
-                </TabsContent>
-                <TabsContent value="css" className="mt-0 space-y-4">
-                  <CSSFixPreview
-                    url={url}
-                    device={{
-                      width: selectedScreenSize?.width || 0,
-                      height: selectedScreenSize?.height || 0
-                    }}
-                    issues={[]} // We'll need to pass the actual issues here
-                  />
-                </TabsContent>
-                <TabsContent value="debug" className="mt-0 space-y-4">
-                  {/* Debug information */}
-                </TabsContent>
-              </div>
-            </Tabs>
-          </div>
+        {/* Preview Area */}
+        <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl border border-slate-700">
+          <DevicePreview
+            url={url}
+            device={selectedDevice}
+            screenSize={selectedScreenSize}
+          />
         </div>
-      </div>
+        </div>
     </div>
   );
 }
