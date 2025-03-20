@@ -7,8 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
-import { AITester } from '@/components/ai-tester'; // Import AITester
-import { CSSFixPreview } from '@/components/css-fix-preview'; //Import CSSFixPreview
+import { AITester } from '@/components/ai-tester';
+import { CSSFixPreview } from '@/components/css-fix-preview';
 
 const QUICK_DEVICES = [
   { id: 'iphone-15-pro-max', label: 'iPhone 15 Pro Max' },
@@ -95,7 +95,7 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-800 via-slate-700 to-slate-800 p-4">
       <div className="max-w-[1800px] mx-auto space-y-4">
-        {/* Top toolbar */}
+        {/* Top Controls */}
         <div className="flex items-center gap-4 bg-slate-800/50 backdrop-blur-sm rounded-xl border border-slate-700 p-4">
           <div className="w-[280px]">
             <URLInput onValidURL={setUrl} />
@@ -115,7 +115,7 @@ export default function Home() {
           </Button>
         </div>
 
-        {/* Quick device buttons */}
+        {/* Quick Device Selection */}
         <div className="flex flex-wrap gap-2 bg-slate-800/50 backdrop-blur-sm rounded-xl border border-slate-700 p-4">
           {QUICK_DEVICES.map((device) => (
             <Button
@@ -135,10 +135,10 @@ export default function Home() {
           ))}
         </div>
 
-        {/* Main content area */}
+        {/* Main Content Area */}
         <div className="flex gap-6">
-          {/* Left side - Device preview */}
-          <div className="w-[600px] flex-shrink-0">
+          {/* Left Side - Device Preview */}
+          <div className="w-[500px] flex-shrink-0">
             <DevicePreview
               url={url}
               device={selectedDevice}
@@ -146,7 +146,7 @@ export default function Home() {
             />
           </div>
 
-          {/* Right side - Analysis and tools */}
+          {/* Right Side - Analysis Tools */}
           <div className="flex-1 bg-slate-800/50 backdrop-blur-sm rounded-xl border border-slate-700 overflow-hidden">
             <Tabs defaultValue="analysis" className="w-full">
               <div className="px-4 pt-4">
@@ -177,8 +177,7 @@ export default function Home() {
                     url={url}
                     device={{
                       width: selectedScreenSize?.width || 0,
-                      height: selectedScreenSize?.height || 0,
-                      type: selectedDevice?.type || 'desktop'
+                      height: selectedScreenSize?.height || 0
                     }}
                     onAnalysisComplete={(results) => {
                       // Handle analysis results

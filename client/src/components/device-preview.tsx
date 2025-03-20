@@ -24,17 +24,26 @@ export function DevicePreview({ url, device, screenSize }: DevicePreviewProps) {
 
   const updateScale = React.useCallback(() => {
     if (containerRef.current && screenSize) {
-      const containerWidth = containerRef.current.clientWidth - 48; // Account for padding
-      const containerHeight = containerRef.current.clientHeight - 48;
+      // Fixed container dimensions
+      const maxContainerWidth = 500; // Fixed max width
+      const maxContainerHeight = 700; // Fixed max height
+      const padding = 48; // Account for padding and borders
+
+      // Calculate scale based on device orientation
       const isLandscape = screenSize.width > screenSize.height;
+      let containerWidth = maxContainerWidth - padding;
+      let containerHeight = maxContainerHeight - padding;
 
-      // Adjust available space based on orientation
-      const availableWidth = isLandscape ? containerWidth : containerWidth * 0.8;
-      const availableHeight = isLandscape ? containerHeight * 0.8 : containerHeight;
+      // Adjust dimensions based on orientation
+      if (isLandscape) {
+        containerWidth = maxContainerWidth - padding;
+        containerHeight = (maxContainerHeight * 0.8) - padding; // Reduce height in landscape
+      }
 
-      const scaleX = availableWidth / screenSize.width;
-      const scaleY = availableHeight / screenSize.height;
-      setScale(Math.min(scaleX, scaleY, 1));
+      const scaleX = containerWidth / screenSize.width;
+      const scaleY = containerHeight / screenSize.height;
+      const newScale = Math.min(scaleX, scaleY, 1);
+      setScale(newScale);
     }
   }, [screenSize]);
 
@@ -83,11 +92,18 @@ export function DevicePreview({ url, device, screenSize }: DevicePreviewProps) {
 
     return {
       borderRadius: isPhone ? '1.5rem' : isTablet ? '1rem' : '0.5rem',
-      boxShadow: isPhone || isTablet ? 
-        '0 0 0 8px rgba(0,0,0,0.2), 0 10px 20px rgba(0,0,0,0.2)' : 
+      border: '1px solid rgba(0,0,0,0.1)',
+      boxShadow: isPhone ? 
+        '0 0 0 8px rgba(0,0,0,0.2), 0 25px 35px rgba(0,0,0,0.2)' : 
+        isTablet ? 
+        '0 0 0 10px rgba(0,0,0,0.15), 0 25px 35px rgba(0,0,0,0.2)' :
         '0 4px 12px rgba(0,0,0,0.1)',
       background: '#000',
       padding: isPhone ? '0.75rem' : isTablet ? '0.5rem' : '0.25rem',
+      transform: `scale(${scale})`,
+      transformOrigin: 'center',
+      width: `${screenSize.width}px`,
+      height: `${screenSize.height}px`,
       transition: 'all 0.3s ease',
     };
   };
@@ -137,31 +153,24 @@ export function DevicePreview({ url, device, screenSize }: DevicePreviewProps) {
       <div 
         ref={containerRef}
         className="relative flex items-center justify-center bg-slate-900/50"
-        style={{ height: '500px' }}
+        style={{ height: screenSize.height > screenSize.width ? '700px' : '500px' }}
       >
         <motion.div
           className={cn(
-            "preview-container relative bg-white",
+            "preview-container relative",
             device.type === 'phone' && "rounded-[1.5rem]",
             device.type === 'tablet' && "rounded-[1rem]"
           )}
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.2 }}
-          style={{
-            ...getDeviceStyle(),
-            transform: `scale(${scale})`,
-            transformOrigin: 'center',
-            width: `${screenSize.width}px`,
-            height: `${screenSize.height}px`,
-          }}
+          style={getDeviceStyle()}
         >
           <iframe
             ref={iframeRef}
-            className="w-full h-full rounded-[inherit]"
+            className="w-full h-full rounded-[inherit] bg-white"
             style={{
               border: '1px solid rgba(148, 163, 184, 0.1)',
-              backgroundColor: 'white'
             }}
             title="Website Preview"
           />
