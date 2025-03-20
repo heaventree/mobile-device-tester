@@ -18,7 +18,6 @@ interface DevicePreviewProps {
 export function DevicePreview({ url, device, screenSize }: DevicePreviewProps) {
   const containerRef = React.useRef<HTMLDivElement>(null);
   const iframeRef = React.useRef<HTMLIFrameElement>(null);
-  const previewTimeoutRef = React.useRef<number>();
   const [scale, setScale] = React.useState(1);
   const [results, setResults] = React.useState([]);
   const [cssPreviewEnabled, setCssPreviewEnabled] = React.useState(false);
@@ -42,6 +41,7 @@ export function DevicePreview({ url, device, screenSize }: DevicePreviewProps) {
     return () => window.removeEventListener('resize', updateScale);
   }, [updateScale]);
 
+  // Update iframe content with CSS fixes if enabled
   const updateIframeContent = React.useCallback(async () => {
     if (!iframeRef.current || !url || isLoadingPreview) return;
 
@@ -72,10 +72,10 @@ export function DevicePreview({ url, device, screenSize }: DevicePreviewProps) {
     }
   }, [url, cssPreviewEnabled, generatedCSS, isLoadingPreview]);
 
-  // Only update when URL changes
+  // Only update preview on URL change or manual refresh
   React.useEffect(() => {
     updateIframeContent();
-  }, [url]); // Remove automatic refresh on CSS changes
+  }, [url]);
 
   const handleRefresh = () => {
     updateIframeContent();
@@ -208,6 +208,8 @@ export function DevicePreview({ url, device, screenSize }: DevicePreviewProps) {
         <AITester 
           url={url}
           device={screenSize}
+          cssEnabled={cssPreviewEnabled}
+          cssContent={generatedCSS}
           onAnalysisComplete={(newResults) => {
             setResults(newResults);
             const criticalErrors = newResults.filter(r => r.type === 'error');

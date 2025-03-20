@@ -5,7 +5,7 @@ import { Loader2, AlertCircle, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { apiRequest } from '@/lib/queryClient';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { Code } from 'lucide-react'; // Import missing Code icon
+import { Code } from 'lucide-react';
 
 interface TestResult {
   type: 'error' | 'warning' | 'success';
@@ -17,10 +17,12 @@ interface TestResult {
 interface AITesterProps {
   url: string;
   device: { width: number; height: number };
+  cssEnabled?: boolean;
+  cssContent?: string | null;
   onAnalysisComplete?: (results: TestResult[]) => void;
 }
 
-export function AITester({ url, device, onAnalysisComplete }: AITesterProps) {
+export function AITester({ url, device, cssEnabled, cssContent, onAnalysisComplete }: AITesterProps) {
   const [isQuickAnalyzing, setIsQuickAnalyzing] = React.useState(false);
   const [isAiAnalyzing, setIsAiAnalyzing] = React.useState(false);
   const [results, setResults] = React.useState<TestResult[]>([]);
@@ -43,8 +45,20 @@ export function AITester({ url, device, onAnalysisComplete }: AITesterProps) {
       }
       const html = await pageResponse.text();
 
+      // If CSS fixes are enabled, inject them into the HTML for analysis
+      let testHtml = html;
+      if (cssEnabled && cssContent) {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+        const style = doc.createElement('style');
+        style.id = 'ai-responsive-fixes';
+        style.textContent = cssContent;
+        doc.head.appendChild(style);
+        testHtml = doc.documentElement.outerHTML;
+      }
+
       const parser = new DOMParser();
-      const doc = parser.parseFromString(html, 'text/html');
+      const doc = parser.parseFromString(testHtml, 'text/html');
       const testResults: TestResult[] = [];
 
       // Test 1: Viewport Meta Tag
@@ -127,7 +141,9 @@ export function AITester({ url, device, onAnalysisComplete }: AITesterProps) {
               height: device.height,
               type: device.width <= 480 ? 'mobile' : device.width <= 1024 ? 'tablet' : 'desktop'
             },
-            issues: testResults
+            issues: testResults,
+            cssEnabled,
+            cssContent
           });
 
           const data = await response.json();
