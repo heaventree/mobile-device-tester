@@ -27,12 +27,23 @@ export function URLInput({ onValidURL }: URLInputProps) {
     }
   };
 
+  const handleFocus = (e: React.FocusEvent<HTMLInputElement>) => {
+    if (!url) {
+      setUrl('https://');
+      // Place cursor at the end
+      setTimeout(() => {
+        e.target.setSelectionRange(8, 8);
+      }, 0);
+    }
+  };
+
   return (
     <form onSubmit={handleSubmit} className="flex gap-2">
       <Input
         type="url"
-        placeholder="Enter website URL (e.g. https://example.com)"
+        placeholder="Enter URL"
         value={url}
+        onFocus={handleFocus}
         onChange={(e) => {
           setUrl(e.target.value);
           if (e.target.value) {
