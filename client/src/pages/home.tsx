@@ -5,7 +5,6 @@ import { DevicePreview } from '@/components/device-preview';
 import type { Device, ScreenSize } from '@shared/schema';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
-//import { Phone, Tablet } from 'lucide-react'; //These imports are not used and can be removed.
 
 const QUICK_DEVICES = [
   { id: 'iphone-15-pro-max', label: 'iPhone 15 Pro Max' },
@@ -22,8 +21,7 @@ export default function Home() {
   const [url, setUrl] = React.useState('');
   const [selectedDevice, setSelectedDevice] = React.useState<Device | null>(null);
   const [selectedScreenSize, setSelectedScreenSize] = React.useState<ScreenSize | null>(null);
-  const [devices, setDevices] = React.useState<Device[]>([]); // Added state for devices
-
+  const [devices, setDevices] = React.useState<Device[]>([]);
 
   const handleDeviceSelect = (device: Device, screenSize: ScreenSize) => {
     setSelectedDevice(device);
@@ -31,10 +29,9 @@ export default function Home() {
   };
 
   React.useEffect(() => {
-    // Fetch device data here.  Replace this with your actual data fetching logic.
     const fetchData = async () => {
       try {
-        const response = await fetch('/api/devices'); //Example API endpoint
+        const response = await fetch('/api/devices');
         const data = await response.json();
         setDevices(data);
       } catch (error) {
@@ -63,33 +60,48 @@ export default function Home() {
 
         <div className="space-y-4">
           <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl p-6 shadow-xl border border-slate-700">
-            <div className="flex items-center gap-6">
-              <div className="w-[400px]">
-                <URLInput onValidURL={setUrl} />
+            <div className="flex items-center gap-4">
+              <div className="flex-1 flex items-center gap-6">
+                <div className="w-[350px]">
+                  <URLInput onValidURL={setUrl} />
+                </div>
+
+                <div className="flex-1 flex items-center gap-2 px-4 border-x border-slate-700">
+                  {QUICK_DEVICES.map((device) => (
+                    <Button
+                      key={device.id}
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        const foundDevice = devices?.find(d => d.id === device.id);
+                        if (foundDevice) {
+                          handleDeviceSelect(foundDevice, foundDevice.screenSizes[0]);
+                        }
+                      }}
+                      className="text-slate-300 hover:text-slate-100 whitespace-nowrap"
+                    >
+                      {device.label}
+                    </Button>
+                  ))}
+                </div>
+
+                <div className="w-[280px]">
+                  <DeviceSelector onDeviceSelect={handleDeviceSelect} />
+                </div>
               </div>
 
-              <div className="flex-1 flex items-center gap-2 px-4 border-x border-slate-700">
-                {QUICK_DEVICES.map((device) => (
-                  <Button
-                    key={device.id}
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      const foundDevice = devices?.find(d => d.id === device.id);
-                      if (foundDevice) {
-                        handleDeviceSelect(foundDevice, foundDevice.screenSizes[0]);
-                      }
-                    }}
-                    className="text-slate-300 hover:text-slate-100 whitespace-nowrap"
-                  >
-                    {device.label}
-                  </Button>
-                ))}
-              </div>
-
-              <div className="w-[280px]">
-                <DeviceSelector onDeviceSelect={handleDeviceSelect} />
-              </div>
+              <Button 
+                onClick={() => {
+                  // Added a placeholder for onValidURL.  This needs to be defined elsewhere.
+                  if (url && selectedDevice) {
+                    console.log("Testing with URL:", url, "and Device:", selectedDevice); // Replace with actual testing logic.
+                  }
+                }}
+                disabled={!url || !selectedDevice}
+                className="min-w-[100px]"
+              >
+                Test Website
+              </Button>
             </div>
           </div>
 

@@ -1,6 +1,5 @@
 import React from 'react';
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 
@@ -14,7 +13,6 @@ export function URLInput({ onValidURL }: URLInputProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
     try {
       await apiRequest('POST', '/api/validate-url', { url });
       onValidURL(url);
@@ -36,7 +34,6 @@ export function URLInput({ onValidURL }: URLInputProps) {
         onChange={(e) => setUrl(e.target.value)}
         className="flex-1"
       />
-      <Button type="submit">Test</Button>
     </form>
   );
 }
