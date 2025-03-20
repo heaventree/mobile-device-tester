@@ -8,7 +8,7 @@ export default {
       colors: {
         background: {
           DEFAULT: "hsl(var(--background))",
-          darker: "hsl(228, 9%, 11%)", // Softer dark background
+          darker: "hsl(250, 86%, 12%)", // Slightly darker version of our main background
         },
         foreground: "hsl(var(--foreground))",
         card: {
