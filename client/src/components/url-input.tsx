@@ -28,7 +28,7 @@ export function URLInput({ onValidURL }: URLInputProps) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="flex gap-2 w-full">
+    <form onSubmit={handleSubmit} className="flex gap-2">
       <Input
         type="url"
         placeholder="Enter website URL (e.g. https://example.com)"
@@ -36,7 +36,7 @@ export function URLInput({ onValidURL }: URLInputProps) {
         onChange={(e) => setUrl(e.target.value)}
         className="flex-1"
       />
-      <Button type="submit">Test Website</Button>
+      <Button type="submit">Test</Button>
     </form>
   );
 }
