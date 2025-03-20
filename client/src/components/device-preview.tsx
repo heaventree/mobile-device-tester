@@ -7,6 +7,7 @@ import { Camera } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import { useToast } from '@/hooks/use-toast';
 import { AITester } from './ai-tester';
+import { CSSFixPreview } from './css-fix-preview';
 
 interface DevicePreviewProps {
   url: string;
@@ -19,16 +20,16 @@ export function DevicePreview({ url, device, screenSize }: DevicePreviewProps) {
   const iframeRef = React.useRef<HTMLIFrameElement>(null);
   const [scale, setScale] = React.useState(1);
   const { toast } = useToast();
+  const [results, setResults] = React.useState([]); //Added state to store results
 
   const updateScale = React.useCallback(() => {
     if (containerRef.current && screenSize) {
-      const containerHeight = 600; // Fixed container height
+      const containerHeight = 600; 
       const containerWidth = containerRef.current.clientWidth;
 
-      // Calculate scale based on both dimensions
       const scaleX = containerWidth / screenSize.width;
       const scaleY = containerHeight / screenSize.height;
-      setScale(Math.min(scaleX, scaleY, 1)); // Never scale up
+      setScale(Math.min(scaleX, scaleY, 1)); 
     }
   }, [screenSize]);
 
@@ -51,7 +52,6 @@ export function DevicePreview({ url, device, screenSize }: DevicePreviewProps) {
       const canvas = await html2canvas(containerRef.current.querySelector('.preview-container') as HTMLElement);
       const image = canvas.toDataURL('image/png');
 
-      // Create download link
       const link = document.createElement('a');
       link.download = `${device.name.toLowerCase().replace(/\s+/g, '-')}-screenshot.png`;
       link.href = image;
@@ -126,14 +126,13 @@ export function DevicePreview({ url, device, screenSize }: DevicePreviewProps) {
         </motion.div>
       </div>
 
-      {/* AI Testing Section */}
-      <div className="p-4 border-t border-slate-700">
+      <div className="p-4 border-t border-slate-700 space-y-4">
         <AITester 
           url={url}
           device={screenSize}
-          onAnalysisComplete={(results) => {
-            // Show toast for critical errors
-            const criticalErrors = results.filter(r => r.type === 'error');
+          onAnalysisComplete={(newResults) => {
+            setResults(newResults); // Update results state
+            const criticalErrors = newResults.filter(r => r.type === 'error');
             if (criticalErrors.length > 0) {
               toast({
                 title: "Critical Issues Found",
@@ -143,6 +142,13 @@ export function DevicePreview({ url, device, screenSize }: DevicePreviewProps) {
             }
           }}
         />
+        <div className="mt-4 pt-4 border-t border-slate-700">
+          <CSSFixPreview
+            url={url}
+            device={screenSize}
+            issues={results}
+          />
+        </div>
       </div>
     </Card>
   );

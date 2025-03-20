@@ -7,6 +7,21 @@ import OpenAI from 'openai';
 import type { ChatCompletionMessageParam } from 'openai/resources/chat/completions';
 import fetch from 'node-fetch';
 
+// Schema definitions
+const cssFixSchema = z.object({
+  url: z.string().url(),
+  deviceInfo: z.object({
+    width: z.number(),
+    height: z.number(),
+    type: z.string()
+  }),
+  issues: z.array(z.object({
+    type: z.string(),
+    description: z.string(),
+    element: z.string().optional()
+  }))
+});
+
 const urlSchema = z.string().url();
 const wpTestSchema = z.object({
   pageId: z.number(),
@@ -226,6 +241,142 @@ Please provide a comprehensive analysis following the structure specified, with 
       res.status(500).json({ 
         success: false, 
         message: 'Failed to analyze page',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  // New endpoint to generate CSS fixes
+  app.post("/api/generate-css-fixes", async (req, res) => {
+    if (!process.env.OPENAI_API_KEY) {
+      return res.status(503).json({
+        success: false,
+        message: 'AI analysis is currently unavailable'
+      });
+    }
+
+    try {
+      const data = cssFixSchema.parse(req.body);
+
+      const openai = new OpenAI({
+        apiKey: process.env.OPENAI_API_KEY
+      });
+
+      const messages: ChatCompletionMessageParam[] = [
+        {
+          role: 'system',
+          content: `You are a CSS expert generating fixes for responsive design issues. 
+Generate CSS fixes that will be applied through a separate stylesheet to avoid modifying the original site.
+Focus on non-destructive, reversible changes.
+
+For each fix:
+1. Use specific selectors to target only problematic elements
+2. Include !important only when necessary
+3. Add comments explaining each fix
+4. Consider device-specific media queries (${data.deviceInfo.width}x${data.deviceInfo.height})
+
+Format the response as a JSON object with:
+{
+  "fixes": [
+    {
+      "selector": "string",
+      "css": "string",
+      "description": "string",
+      "impact": "string"
+    }
+  ],
+  "mediaQueries": [
+    {
+      "query": "string",
+      "rules": [
+        {
+          "selector": "string",
+          "css": "string"
+        }
+      ]
+    }
+  ]
+}`
+        },
+        {
+          role: 'user',
+          content: `
+URL: ${data.url}
+Device: ${data.deviceInfo.width}x${data.deviceInfo.height}
+Device Type: ${data.deviceInfo.type}
+
+Issues to fix:
+${data.issues.map(issue => `- ${issue.type}: ${issue.description}`).join('\n')}
+
+Generate CSS fixes that will resolve these issues while ensuring the changes are:
+1. Non-destructive to the original layout
+2. Specific to the problem areas
+3. Easily reversible
+4. Include appropriate media queries when needed`
+        }
+      ];
+
+      const completion = await openai.chat.completions.create({
+        model: "gpt-4",
+        messages,
+        temperature: 0.7,
+        max_tokens: 1000,
+        response_format: { type: "json_object" }
+      });
+
+      const cssFixResponse = JSON.parse(completion.choices[0].message.content);
+
+      // Generate a test stylesheet
+      const stylesheet = `
+/* Generated fixes for ${data.url} */
+/* Device: ${data.deviceInfo.width}x${data.deviceInfo.height} */
+/* These fixes are meant to be applied via a separate stylesheet */
+
+${cssFixResponse.fixes.map(fix => `
+/* ${fix.description} */
+/* Impact: ${fix.impact} */
+${fix.selector} {
+  ${fix.css}
+}`).join('\n')}
+
+${cssFixResponse.mediaQueries.map(mq => `
+@media ${mq.query} {
+  ${mq.rules.map(rule => `
+  ${rule.selector} {
+    ${rule.css}
+  }`).join('\n')}
+}`).join('\n')}
+`;
+
+      res.json({
+        success: true,
+        fixes: cssFixResponse,
+        stylesheet: stylesheet,
+        previewScript: `
+// Add this script to preview changes
+(function() {
+  const style = document.createElement('style');
+  style.id = 'ai-responsive-fixes';
+  style.textContent = ${JSON.stringify(stylesheet)};
+  document.head.appendChild(style);
+
+  // Add button to toggle fixes
+  const toggle = document.createElement('button');
+  toggle.innerHTML = 'Toggle AI Fixes';
+  toggle.style.cssText = 'position:fixed;top:10px;right:10px;z-index:999999;padding:10px;';
+  toggle.onclick = function() {
+    const sheet = document.getElementById('ai-responsive-fixes');
+    sheet.disabled = !sheet.disabled;
+    this.innerHTML = sheet.disabled ? 'Enable AI Fixes' : 'Disable AI Fixes';
+  };
+  document.body.appendChild(toggle);
+})();`
+      });
+    } catch (error) {
+      console.error('CSS Generation error:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: 'Failed to generate CSS fixes',
         error: error instanceof Error ? error.message : 'Unknown error'
       });
     }
