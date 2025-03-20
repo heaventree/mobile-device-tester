@@ -10,7 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Device, ScreenSize } from '@shared/schema';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Phone } from 'lucide-react';
+import { Smartphone, ScreenShare } from 'lucide-react';
 
 interface DeviceSelectorProps {
   onDeviceSelect: (device: Device, screenSize: ScreenSize) => void;
@@ -82,7 +82,7 @@ export function DeviceSelector({ onDeviceSelect }: DeviceSelectorProps) {
             className={`text-slate-200 hover:text-slate-100 ${!isLandscape ? 'bg-slate-700/50' : ''}`}
             title="Portrait orientation"
           >
-            <Phone className="h-4 w-4" />
+            <Smartphone className="h-4 w-4" />
           </Button>
           <Button
             variant="ghost"
@@ -91,7 +91,7 @@ export function DeviceSelector({ onDeviceSelect }: DeviceSelectorProps) {
             className={`text-slate-200 hover:text-slate-100 ${isLandscape ? 'bg-slate-700/50' : ''}`}
             title="Landscape orientation"
           >
-            <Phone className="h-4 w-4 rotate-90" />
+            <ScreenShare className="h-4 w-4" />
           </Button>
         </div>
       )}

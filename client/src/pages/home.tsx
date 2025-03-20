@@ -4,6 +4,7 @@ import { DeviceSelector } from '@/components/device-selector';
 import { DevicePreview } from '@/components/device-preview';
 import type { Device, ScreenSize } from '@shared/schema';
 import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
 
 const QUICK_DEVICES = [
   { id: 'iphone-15-pro-max', label: 'iPhone 15 Pro Max' },
@@ -21,10 +22,38 @@ export default function Home() {
   const [selectedDevice, setSelectedDevice] = React.useState<Device | null>(null);
   const [selectedScreenSize, setSelectedScreenSize] = React.useState<ScreenSize | null>(null);
   const [devices, setDevices] = React.useState<Device[]>([]);
+  const { toast } = useToast();
 
   const handleDeviceSelect = (device: Device, screenSize: ScreenSize) => {
     setSelectedDevice(device);
     setSelectedScreenSize(screenSize);
+  };
+
+  const handleTest = async () => {
+    if (!url || !selectedDevice) return;
+
+    try {
+      const response = await fetch('/api/validate-url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url })
+      });
+
+      if (!response.ok) {
+        throw new Error('Invalid URL');
+      }
+
+      toast({
+        title: "Testing started",
+        description: `Testing ${url} on ${selectedDevice.name}`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to start testing. Please check the URL.",
+        variant: "destructive"
+      });
+    }
   };
 
   React.useEffect(() => {
@@ -52,13 +81,9 @@ export default function Home() {
             <DeviceSelector onDeviceSelect={handleDeviceSelect} />
           </div>
           <Button
-            onClick={() => {
-              if (url && selectedDevice) {
-                console.log("Testing with URL:", url, "and Device:", selectedDevice);
-              }
-            }}
+            onClick={handleTest}
             disabled={!url || !selectedDevice}
-            style={{ backgroundColor: '#795EFF',  color: '#FFFFFF', fontWeight: 'semibold', padding: '8px 16px', width: '100px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', hover: { backgroundColor: '#8B74FF' } }}
+            style={{ backgroundColor: '#795EFF', color: '#FFFFFF', fontWeight: 'semibold', padding: '8px 16px', width: '100px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}
           >
             Test
           </Button>
@@ -77,7 +102,7 @@ export default function Home() {
                   handleDeviceSelect(foundDevice, foundDevice.screenSizes[0]);
                 }
               }}
-              style={{ color: 'slategray', hover: { color: 'white' } }}
+              style={{ color: 'slategray' }}
             >
               {device.label}
             </Button>
