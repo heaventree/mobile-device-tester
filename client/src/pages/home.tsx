@@ -6,16 +6,17 @@ import type { Device, ScreenSize } from '@shared/schema';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
+import { Icon } from '@/components/ui/icon';
 
 const QUICK_DEVICES = [
-  { id: 'iphone-15-pro-max', label: 'iPhone 15 Pro Max' },
-  { id: 'iphone-15', label: 'iPhone 15' },
-  { id: 'samsung-s24-ultra', label: 'S24 Ultra' },
-  { id: 'pixel-8-pro', label: 'Pixel 8 Pro' },
-  { id: 'ipad-pro-13', label: 'iPad Pro' },
-  { id: 'samsung-tab-s9-ultra', label: 'Tab S9' },
-  { id: 'macbook-pro-16', label: 'MacBook Pro' },
-  { id: 'desktop-1440p', label: '1440p Monitor' }
+  { id: 'iphone-15-pro-max', label: 'iPhone 15 Pro Max', icon: 'ph:device-mobile-camera' },
+  { id: 'iphone-15', label: 'iPhone 15', icon: 'ph:device-mobile' },
+  { id: 'samsung-s24-ultra', label: 'S24 Ultra', icon: 'ph:device-mobile-speaker' },
+  { id: 'pixel-8-pro', label: 'Pixel 8 Pro', icon: 'ph:device-mobile-camera' },
+  { id: 'ipad-pro-13', label: 'iPad Pro', icon: 'ph:device-tablet' },
+  { id: 'samsung-tab-s9-ultra', label: 'Tab S9', icon: 'ph:device-tablet-speaker' },
+  { id: 'macbook-pro-16', label: 'MacBook Pro', icon: 'ph:laptop' },
+  { id: 'desktop-1440p', label: '1440p Monitor', icon: 'ph:monitor' }
 ];
 
 export default function Home() {
@@ -34,10 +35,8 @@ export default function Home() {
     if (!url || !selectedDevice) return;
 
     try {
-      // First validate the URL
       await apiRequest('POST', '/api/validate-url', { url });
 
-      // If we're testing from WordPress, record the test
       const params = new URLSearchParams(window.location.search);
       const pageId = params.get('page_id');
       if (pageId) {
@@ -63,7 +62,7 @@ export default function Home() {
   React.useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const urlParam = params.get('url');
-    const deviceParam = params.get('devices')?.split(',')[0]; // Get first device if multiple specified
+    const deviceParam = params.get('devices')?.split(',')[0];
 
     if (urlParam) {
       setUrl(urlParam);
@@ -75,10 +74,9 @@ export default function Home() {
         const data = await response.json();
         setDevices(data);
 
-        // Auto-select device based on URL parameter or first device
         if (data.length > 0) {
           const deviceToSelect = deviceParam ? 
-            data.find(d => d.id === deviceParam) : 
+            data.find((d: Device) => d.id === deviceParam) : 
             data[0];
 
           if (deviceToSelect) {
@@ -93,50 +91,64 @@ export default function Home() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-800 via-slate-700 to-slate-800 p-4">
-      <div className="max-w-7xl mx-auto space-y-4">
-        {/* Main toolbar */}
-        <div className="flex items-center gap-4">
-          <div className="w-[280px]">
-            <URLInput onValidURL={setUrl} />
-          </div>
-          <div className="w-[350px]">
-            <DeviceSelector 
-              onDeviceSelect={handleDeviceSelect}
-              selectedDeviceId={selectedDevice?.id}
-            />
-          </div>
-          <Button
-            onClick={handleTest}
-            disabled={!url || !selectedDevice}
-            style={{ backgroundColor: '#795EFF', color: '#FFFFFF', fontWeight: 'semibold', padding: '8px 16px', width: '100px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}
-          >
-            Test
-          </Button>
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+      <div className="max-w-7xl mx-auto p-6 space-y-6">
+        {/* Header Section */}
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-pink-600">
+            Device Testing Platform
+          </h1>
+          <p className="mt-2 text-slate-300">
+            Test your website across multiple devices with AI-powered analysis
+          </p>
         </div>
 
-        {/* Quick device buttons */}
-        <div className="flex items-center gap-2 flex-wrap">
-          {QUICK_DEVICES.map((device) => (
+        {/* Main Controls */}
+        <div className="bg-slate-800/40 backdrop-blur-xl rounded-xl border border-slate-700/50 p-6">
+          <div className="flex flex-wrap items-center gap-4">
+            <div className="flex-1 min-w-[280px]">
+              <URLInput onValidURL={setUrl} />
+            </div>
+            <div className="flex-1 min-w-[350px]">
+              <DeviceSelector 
+                onDeviceSelect={handleDeviceSelect}
+                selectedDeviceId={selectedDevice?.id}
+              />
+            </div>
             <Button
-              key={device.id}
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                const foundDevice = devices?.find(d => d.id === device.id);
-                if (foundDevice) {
-                  handleDeviceSelect(foundDevice, foundDevice.screenSizes[0]);
-                }
-              }}
-              style={{ color: 'slategray' }}
+              onClick={handleTest}
+              disabled={!url || !selectedDevice}
+              className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-lg shadow-purple-500/20 min-w-[120px]"
             >
-              {device.label}
+              <Icon icon="ph:play-circle" className="mr-2" />
+              Test
             </Button>
-          ))}
+          </div>
+
+          {/* Quick Device Selection */}
+          <div className="mt-4 flex items-center gap-2 flex-wrap">
+            {QUICK_DEVICES.map((device) => (
+              <Button
+                key={device.id}
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  const foundDevice = devices?.find(d => d.id === device.id);
+                  if (foundDevice) {
+                    handleDeviceSelect(foundDevice, foundDevice.screenSizes[0]);
+                  }
+                }}
+                className="text-slate-300 hover:text-white hover:bg-slate-700/50 transition-all"
+              >
+                <Icon icon={device.icon} className="mr-2" size={16} />
+                {device.label}
+              </Button>
+            ))}
+          </div>
         </div>
 
-        {/* Preview area */}
-        <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl border border-slate-700">
+        {/* Preview Area */}
+        <div className="bg-slate-800/40 backdrop-blur-xl rounded-xl border border-slate-700/50 shadow-xl">
           <DevicePreview
             url={url}
             device={selectedDevice}
