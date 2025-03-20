@@ -37,6 +37,15 @@ export function CSSFixPreview({ url, device, issues, onCSSGenerated }: CSSFixPre
   const { toast } = useToast();
 
   const generateFixes = async () => {
+    if (!issues.length) {
+      toast({
+        title: "No issues to fix",
+        description: "Run the analysis first to find responsive design issues.",
+        variant: "default"
+      });
+      return;
+    }
+
     setIsGenerating(true);
     setError(null);
     setFixes(null);
@@ -54,8 +63,14 @@ export function CSSFixPreview({ url, device, issues, onCSSGenerated }: CSSFixPre
       });
 
       const data = await response.json();
+
       if (!data.success) {
         throw new Error(data.message || 'Failed to generate CSS fixes');
+      }
+
+      // Validate response structure
+      if (!data.fixes || !data.stylesheet) {
+        throw new Error('Invalid response format from server');
       }
 
       setFixes(data.fixes);
