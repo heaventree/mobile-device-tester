@@ -180,7 +180,7 @@ export function CSSFixPreview({ url, device, issues, onCSSGenerated }: CSSFixPre
               </Button>
             </CollapsibleTrigger>
             <CollapsibleContent>
-              <Card className="mt-2 p-4 bg-slate-900/90 border-purple-500/20">
+              <Card className="mt-2 p-4 bg-slate-800/90 border-purple-500/20">
                 <pre className="whitespace-pre-wrap text-sm text-slate-200">
                   {stylesheet}
                 </pre>
@@ -192,11 +192,11 @@ export function CSSFixPreview({ url, device, issues, onCSSGenerated }: CSSFixPre
             <div className="space-y-2">
               <h4 className="font-medium text-slate-200">Direct Fixes</h4>
               {fixes.fixes.map((fix, index) => (
-                <Card key={index} className="p-4 bg-slate-800/60 border-purple-500/20">
+                <Card key={index} className="p-4 bg-slate-800/90 border-purple-500/20">
                   <div className="space-y-2">
                     <div className="font-medium text-slate-200">{fix.description}</div>
                     <div className="text-sm text-slate-400">Impact: {fix.impact}</div>
-                    <div className="bg-slate-900/90 p-4 rounded-md relative group">
+                    <div className="bg-slate-800/90 p-4 rounded-md relative group">
                       <Button
                         variant="outline"
                         size="sm"
@@ -219,11 +219,11 @@ export function CSSFixPreview({ url, device, issues, onCSSGenerated }: CSSFixPre
             <div className="space-y-2">
               <h4 className="font-medium text-slate-200">Media Queries</h4>
               {fixes.mediaQueries.map((mq, index) => (
-                <Card key={index} className="p-4 bg-slate-800/60 border-purple-500/20">
+                <Card key={index} className="p-4 bg-slate-800/90 border-purple-500/20">
                   <div className="space-y-2">
                     <div className="font-medium text-purple-300">@media {mq.query}</div>
                     {mq.rules.map((rule, ruleIndex) => (
-                      <div key={ruleIndex} className="bg-slate-900/90 p-4 rounded-md relative group">
+                      <div key={ruleIndex} className="bg-slate-800/90 p-4 rounded-md relative group">
                         <Button
                           variant="outline"
                           size="sm"
