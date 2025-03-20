@@ -143,22 +143,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const messages: ChatCompletionMessageParam[] = [
         {
           role: 'system',
-          content: `You are a responsive design expert analyzing websites. Focus on mobile-first design, accessibility, and user experience. Analyze the provided HTML content and issues for a ${data.deviceInfo.width}x${data.deviceInfo.height} screen.`
+          content: `You are a responsive design expert analyzing websites. Focus on mobile-first design, accessibility, and user experience. Analyze the provided HTML content and issues for a ${data.deviceInfo.width}x${data.deviceInfo.height} screen.
+
+Your analysis should follow this structure:
+1. CRITICAL ISSUES (Issues that severely impact usability)
+   - Provide specific code fixes or CSS solutions
+   - Explain impact on user experience
+   - Rate severity (High/Medium/Low)
+
+2. ACCESSIBILITY CONCERNS
+   - WCAG compliance issues
+   - Touch target size problems
+   - Color contrast issues
+   - Screen reader compatibility
+
+3. RESPONSIVE DESIGN IMPROVEMENTS
+   - Viewport optimization
+   - Media query suggestions
+   - Flexbox/Grid layout recommendations
+   - Image optimization strategies
+
+4. PERFORMANCE OPTIMIZATION
+   - Resource loading
+   - Asset optimization
+   - Lazy loading implementation
+   - Browser compatibility fixes
+
+5. BEST PRACTICES CHECKLIST
+   - Mobile-first considerations
+   - Touch interaction improvements
+   - Layout hierarchy suggestions
+   - Content adaptability recommendations`
         },
         {
           role: 'user',
           content: `
 URL: ${data.url}
 Device: ${data.deviceInfo.width}x${data.deviceInfo.height}
+Device Type: ${data.deviceInfo.type}
+
 Initial issues found:
 ${data.issues.map(issue => `- ${issue.type}: ${issue.description}`).join('\n')}
 
-Please analyze these issues and provide:
-1. Severity assessment for each issue
-2. Detailed explanation of the impact
-3. Specific suggestions for fixes
-4. Additional best practices to consider
-5. Accessibility implications`
+Please provide a comprehensive analysis following the structure specified, with actionable recommendations and code examples where relevant.`
         }
       ];
 
