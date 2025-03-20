@@ -18,19 +18,21 @@ interface DevicePreviewProps {
 export function DevicePreview({ url, device, screenSize }: DevicePreviewProps) {
   const containerRef = React.useRef<HTMLDivElement>(null);
   const iframeRef = React.useRef<HTMLIFrameElement>(null);
+  const previewTimeoutRef = React.useRef<number>();
   const [scale, setScale] = React.useState(1);
-  const { toast } = useToast();
   const [results, setResults] = React.useState([]);
   const [cssPreviewEnabled, setCssPreviewEnabled] = React.useState(false);
   const [generatedCSS, setGeneratedCSS] = React.useState<string | null>(null);
+  const [isLoadingPreview, setIsLoadingPreview] = React.useState(false);
+  const { toast } = useToast();
 
   const updateScale = React.useCallback(() => {
     if (containerRef.current && screenSize) {
-      const containerHeight = 600; 
+      const containerHeight = 600;
       const containerWidth = containerRef.current.clientWidth;
       const scaleX = containerWidth / screenSize.width;
       const scaleY = containerHeight / screenSize.height;
-      setScale(Math.min(scaleX, scaleY, 1)); 
+      setScale(Math.min(scaleX, scaleY, 1));
     }
   }, [screenSize]);
 
@@ -40,40 +42,54 @@ export function DevicePreview({ url, device, screenSize }: DevicePreviewProps) {
     return () => window.removeEventListener('resize', updateScale);
   }, [updateScale]);
 
-  // Update iframe content when CSS preview is toggled
-  React.useEffect(() => {
+  // Debounced update of iframe content with cleanup
+  const updateIframeContent = React.useCallback(async () => {
     const iframe = iframeRef.current;
-    if (!iframe || !url) return;
+    if (!iframe || !url || isLoadingPreview) return;
 
-    iframe.src = 'about:blank';
-    iframe.onload = async () => {
-      try {
-        // Fetch the original page content
-        const response = await fetch(`/api/fetch-page?url=${encodeURIComponent(url)}`);
-        const html = await response.text();
+    setIsLoadingPreview(true);
+    try {
+      const response = await fetch(`/api/fetch-page?url=${encodeURIComponent(url)}`);
+      if (!response.ok) throw new Error('Failed to fetch page content');
+      const html = await response.text();
 
-        // Get the iframe's document
-        const doc = iframe.contentDocument;
-        if (!doc) return;
+      const doc = iframe.contentDocument;
+      if (!doc) return;
 
-        // Write the base HTML
-        doc.open();
-        doc.write(html);
+      doc.open();
+      doc.write(html);
 
-        // If CSS preview is enabled, inject our CSS
-        if (cssPreviewEnabled && generatedCSS) {
-          const style = doc.createElement('style');
-          style.id = 'ai-responsive-fixes';
-          style.textContent = generatedCSS;
-          doc.head.appendChild(style);
-        }
+      if (cssPreviewEnabled && generatedCSS) {
+        const style = doc.createElement('style');
+        style.id = 'ai-responsive-fixes';
+        style.textContent = generatedCSS;
+        doc.head.appendChild(style);
+      }
 
-        doc.close();
-      } catch (error) {
-        console.error('Error loading preview:', error);
+      doc.close();
+    } catch (error) {
+      console.error('Error updating preview:', error);
+    } finally {
+      setIsLoadingPreview(false);
+    }
+  }, [url, cssPreviewEnabled, generatedCSS, isLoadingPreview]);
+
+  React.useEffect(() => {
+    // Clear any existing timeout
+    if (previewTimeoutRef.current) {
+      clearTimeout(previewTimeoutRef.current);
+    }
+
+    // Set new timeout
+    previewTimeoutRef.current = window.setTimeout(updateIframeContent, 500);
+
+    // Cleanup
+    return () => {
+      if (previewTimeoutRef.current) {
+        clearTimeout(previewTimeoutRef.current);
       }
     };
-  }, [url, cssPreviewEnabled, generatedCSS]);
+  }, [updateIframeContent]);
 
   const captureScreenshot = async () => {
     if (!containerRef.current || !device) return;
@@ -119,7 +135,11 @@ export function DevicePreview({ url, device, screenSize }: DevicePreviewProps) {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setCssPreviewEnabled(!cssPreviewEnabled)}
+              onClick={() => {
+                setCssPreviewEnabled(!cssPreviewEnabled);
+                // Force preview update when toggling CSS
+                updateIframeContent();
+              }}
               className="gap-2"
             >
               {cssPreviewEnabled ? (
@@ -146,6 +166,7 @@ export function DevicePreview({ url, device, screenSize }: DevicePreviewProps) {
           </Button>
         </div>
       </div>
+
       <div 
         ref={containerRef}
         className="relative w-full flex items-center justify-center bg-slate-900/50"

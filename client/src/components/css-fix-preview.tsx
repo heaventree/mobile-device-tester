@@ -39,17 +39,10 @@ export function CSSFixPreview({ url, device, issues, onCSSGenerated }: CSSFixPre
   const generateFixes = async () => {
     setIsGenerating(true);
     setError(null);
-    try {
-      console.log('Generating CSS fixes for:', {
-        url,
-        deviceInfo: {
-          width: device.width,
-          height: device.height,
-          type: device.width <= 480 ? 'mobile' : device.width <= 1024 ? 'tablet' : 'desktop'
-        },
-        issues
-      });
+    setFixes(null);
+    setStylesheet(null);
 
+    try {
       const response = await apiRequest('POST', '/api/generate-css-fixes', {
         url,
         deviceInfo: {
@@ -90,8 +83,8 @@ export function CSSFixPreview({ url, device, issues, onCSSGenerated }: CSSFixPre
     try {
       await navigator.clipboard.writeText(text);
       toast({
-        title: "Copied to clipboard",
-        description: "You can now paste the CSS fixes",
+        title: "Copied",
+        description: "Content copied to clipboard",
       });
     } catch (error) {
       toast({
