@@ -1,7 +1,7 @@
 import React from 'react';
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
 
 interface URLInputProps {
   onValidURL: (url: string) => void;
@@ -13,8 +13,10 @@ export function URLInput({ onValidURL }: URLInputProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
     try {
-      await apiRequest('POST', '/api/validate-url', { url });
+      // Validate URL format client-side first
+      new URL(url);
       onValidURL(url);
     } catch (error) {
       toast({
@@ -31,7 +33,17 @@ export function URLInput({ onValidURL }: URLInputProps) {
         type="url"
         placeholder="Enter website URL (e.g. https://example.com)"
         value={url}
-        onChange={(e) => setUrl(e.target.value)}
+        onChange={(e) => {
+          setUrl(e.target.value);
+          if (e.target.value) {
+            try {
+              new URL(e.target.value);
+              onValidURL(e.target.value);
+            } catch (error) {
+              // Silently fail on invalid URL during typing
+            }
+          }
+        }}
         className="flex-1"
       />
     </form>
