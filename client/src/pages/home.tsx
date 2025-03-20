@@ -37,6 +37,16 @@ export default function Home() {
       // First validate the URL
       await apiRequest('POST', '/api/validate-url', { url });
 
+      // If we're testing from WordPress, record the test
+      const params = new URLSearchParams(window.location.search);
+      const pageId = params.get('page_id');
+      if (pageId) {
+        await apiRequest('POST', '/wp/record-test', {
+          pageId: parseInt(pageId, 10),
+          deviceType: selectedDevice.type
+        });
+      }
+
       toast({
         title: "Testing started",
         description: `Testing ${url} on ${selectedDevice.name}`,
@@ -53,6 +63,8 @@ export default function Home() {
   React.useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const urlParam = params.get('url');
+    const deviceParam = params.get('devices')?.split(',')[0]; // Get first device if multiple specified
+
     if (urlParam) {
       setUrl(urlParam);
     }
@@ -63,10 +75,15 @@ export default function Home() {
         const data = await response.json();
         setDevices(data);
 
-        // Auto-select first device when loading from WordPress
-        if (urlParam && data.length > 0) {
-          const firstDevice = data[0];
-          handleDeviceSelect(firstDevice, firstDevice.screenSizes[0]);
+        // Auto-select device based on URL parameter or first device
+        if (data.length > 0) {
+          const deviceToSelect = deviceParam ? 
+            data.find(d => d.id === deviceParam) : 
+            data[0];
+
+          if (deviceToSelect) {
+            handleDeviceSelect(deviceToSelect, deviceToSelect.screenSizes[0]);
+          }
         }
       } catch (error) {
         console.error("Error fetching devices:", error);

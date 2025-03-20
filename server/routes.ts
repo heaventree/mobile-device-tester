@@ -5,6 +5,10 @@ import { insertDeviceSchema } from "@shared/schema";
 import { z } from "zod";
 
 const urlSchema = z.string().url();
+const wpTestSchema = z.object({
+  pageId: z.number(),
+  deviceType: z.string()
+});
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Get all devices
@@ -58,6 +62,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         res.status(400).json({ valid: false, message: error.errors[0].message });
       } else {
         res.status(400).json({ valid: false, message: "Invalid URL" });
+      }
+    }
+  });
+
+  // Record WordPress test
+  app.post("/wp/record-test", async (req, res) => {
+    try {
+      const data = wpTestSchema.parse(req.body);
+      // Just return success since actual recording happens in WordPress
+      res.json({ success: true });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: "Invalid test data", errors: error.errors });
+      } else {
+        res.status(500).json({ message: "Failed to record test" });
       }
     }
   });
