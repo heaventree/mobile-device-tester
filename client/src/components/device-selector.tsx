@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Device, ScreenSize } from '@shared/schema';
 import { Skeleton } from '@/components/ui/skeleton';
 import { motion } from 'framer-motion';
-import { Phone, Tablet, Laptop, Monitor, Smartphone, Maximize2, AlignVerticalJustifyCenter } from 'lucide-react';
+import { Phone, Tablet, Laptop, Monitor, Maximize2, AlignVerticalJustifyCenter } from 'lucide-react';
 
 interface DeviceSelectorProps {
   onDeviceSelect: (device: Device, screenSize: ScreenSize) => void;
@@ -31,7 +31,7 @@ const DeviceIcon = ({ type }: { type: string }) => {
     case 'desktop':
       return <Monitor className="h-4 w-4" />;
     default:
-      return <Smartphone className="h-4 w-4" />;
+      return <Phone className="h-4 w-4" />;
   }
 };
 
@@ -111,7 +111,7 @@ export function DeviceSelector({ onDeviceSelect }: DeviceSelectorProps) {
                   className={`text-slate-200 hover:text-slate-100 ${!isLandscape ? 'bg-slate-700/50' : ''}`}
                   title="Portrait orientation"
                 >
-                  <AlignVerticalJustifyCenter className="h-4 w-4" />
+                  <Phone className="h-4 w-4" />
                 </Button>
                 <Button
                   variant="ghost"
@@ -120,7 +120,7 @@ export function DeviceSelector({ onDeviceSelect }: DeviceSelectorProps) {
                   className={`text-slate-200 hover:text-slate-100 ${isLandscape ? 'bg-slate-700/50' : ''}`}
                   title="Landscape orientation"
                 >
-                  <Maximize2 className="h-4 w-4" />
+                  <Phone className="h-4 w-4 rotate-90" />
                 </Button>
               </div>
             )}
