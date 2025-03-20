@@ -2,9 +2,10 @@ import React from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Code, Eye, Download, Copy } from 'lucide-react';
+import { Loader2, Code, Copy, Download } from 'lucide-react';
 import { apiRequest } from '@/lib/queryClient';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 
 interface CSSFix {
   selector: string;
@@ -32,12 +33,23 @@ export function CSSFixPreview({ url, device, issues, onCSSGenerated }: CSSFixPre
   const [isGenerating, setIsGenerating] = React.useState(false);
   const [fixes, setFixes] = React.useState<{ fixes: CSSFix[], mediaQueries: MediaQuery[] } | null>(null);
   const [stylesheet, setStylesheet] = React.useState<string | null>(null);
-  const [previewScript, setPreviewScript] = React.useState<string | null>(null);
+  const [error, setError] = React.useState<string | null>(null);
   const { toast } = useToast();
 
   const generateFixes = async () => {
     setIsGenerating(true);
+    setError(null);
     try {
+      console.log('Generating CSS fixes for:', {
+        url,
+        deviceInfo: {
+          width: device.width,
+          height: device.height,
+          type: device.width <= 480 ? 'mobile' : device.width <= 1024 ? 'tablet' : 'desktop'
+        },
+        issues
+      });
+
       const response = await apiRequest('POST', '/api/generate-css-fixes', {
         url,
         deviceInfo: {
@@ -55,7 +67,6 @@ export function CSSFixPreview({ url, device, issues, onCSSGenerated }: CSSFixPre
 
       setFixes(data.fixes);
       setStylesheet(data.stylesheet);
-      setPreviewScript(data.previewScript);
       onCSSGenerated?.(data.stylesheet);
 
       toast({
@@ -64,6 +75,7 @@ export function CSSFixPreview({ url, device, issues, onCSSGenerated }: CSSFixPre
       });
     } catch (error) {
       console.error('Generation error:', error);
+      setError(error instanceof Error ? error.message : 'Failed to generate CSS fixes');
       toast({
         title: "Generation Failed",
         description: error instanceof Error ? error.message : 'Failed to generate CSS fixes',
@@ -92,7 +104,7 @@ export function CSSFixPreview({ url, device, issues, onCSSGenerated }: CSSFixPre
 
   const downloadStylesheet = () => {
     if (!stylesheet) return;
-    
+
     const blob = new Blob([stylesheet], { type: 'text/css' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -110,7 +122,7 @@ export function CSSFixPreview({ url, device, issues, onCSSGenerated }: CSSFixPre
         <h3 className="text-lg font-medium">CSS Fixes</h3>
         <Button
           onClick={generateFixes}
-          disabled={isGenerating}
+          disabled={isGenerating || !issues.length}
         >
           {isGenerating ? (
             <>
@@ -123,7 +135,14 @@ export function CSSFixPreview({ url, device, issues, onCSSGenerated }: CSSFixPre
         </Button>
       </div>
 
-      {fixes && stylesheet && (
+      {error && (
+        <Alert variant="destructive">
+          <AlertTitle>Generation Error</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
+      {fixes && stylesheet && !error && (
         <div className="space-y-4">
           <div className="flex gap-2">
             <Button
@@ -142,16 +161,6 @@ export function CSSFixPreview({ url, device, issues, onCSSGenerated }: CSSFixPre
               <Download className="mr-2 h-4 w-4" />
               Download CSS
             </Button>
-            {previewScript && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => copyToClipboard(previewScript)}
-              >
-                <Eye className="mr-2 h-4 w-4" />
-                Copy Preview Script
-              </Button>
-            )}
           </div>
 
           <Collapsible>
@@ -170,24 +179,26 @@ export function CSSFixPreview({ url, device, issues, onCSSGenerated }: CSSFixPre
             </CollapsibleContent>
           </Collapsible>
 
-          <div className="space-y-2">
-            <h4 className="font-medium">Direct Fixes</h4>
-            {fixes.fixes.map((fix, index) => (
-              <Card key={index} className="p-4">
-                <div className="space-y-2">
-                  <div className="font-medium">{fix.description}</div>
-                  <div className="text-sm text-slate-500">Impact: {fix.impact}</div>
-                  <div className="bg-slate-100 p-2 rounded">
-                    <code>{fix.selector} {`{`}</code>
-                    <pre className="text-sm pl-4">{fix.css}</pre>
-                    <code>{`}`}</code>
+          {fixes.fixes?.length > 0 && (
+            <div className="space-y-2">
+              <h4 className="font-medium">Direct Fixes</h4>
+              {fixes.fixes.map((fix, index) => (
+                <Card key={index} className="p-4">
+                  <div className="space-y-2">
+                    <div className="font-medium">{fix.description}</div>
+                    <div className="text-sm text-slate-500">Impact: {fix.impact}</div>
+                    <div className="bg-slate-100 p-2 rounded">
+                      <code>{fix.selector} {`{`}</code>
+                      <pre className="text-sm pl-4">{fix.css}</pre>
+                      <code>{`}`}</code>
+                    </div>
                   </div>
-                </div>
-              </Card>
-            ))}
-          </div>
+                </Card>
+              ))}
+            </div>
+          )}
 
-          {fixes.mediaQueries.length > 0 && (
+          {fixes.mediaQueries?.length > 0 && (
             <div className="space-y-2">
               <h4 className="font-medium">Media Queries</h4>
               {fixes.mediaQueries.map((mq, index) => (

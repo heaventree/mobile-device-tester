@@ -251,11 +251,12 @@ Please provide a comprehensive analysis following the structure specified, with 
     if (!process.env.OPENAI_API_KEY) {
       return res.status(503).json({
         success: false,
-        message: 'AI analysis is currently unavailable'
+        message: 'AI analysis is currently unavailable. OpenAI API key is not configured.'
       });
     }
 
     try {
+      console.log('Received CSS fix request:', req.body);
       const data = cssFixSchema.parse(req.body);
 
       const openai = new OpenAI({
@@ -290,13 +291,7 @@ Your response should be in this format:
       ]
     }
   ]
-}
-
-For each fix:
-1. Use specific selectors to target only problematic elements
-2. Include !important only when necessary
-3. Add comments explaining each fix
-4. Consider device-specific media queries (${data.deviceInfo.width}x${data.deviceInfo.height})`
+}`
         },
         {
           role: 'user',
@@ -314,10 +309,11 @@ Generate CSS fixes that will resolve these issues while ensuring the changes are
 3. Easily reversible
 4. Include appropriate media queries when needed
 
-Return the response in the specified JSON format.`
+Respond with a valid JSON object matching the format specified above.`
         }
       ];
 
+      console.log('Sending request to OpenAI...');
       const completion = await openai.chat.completions.create({
         model: "gpt-4",
         messages,
@@ -326,19 +322,26 @@ Return the response in the specified JSON format.`
       });
 
       const aiResponse = completion.choices[0].message.content;
-      let cssFixResponse;
+      console.log('Received response from OpenAI:', aiResponse);
 
+      let cssFixResponse;
       try {
         cssFixResponse = JSON.parse(aiResponse || '{}');
+        // Validate the response structure
+        if (!cssFixResponse.fixes || !Array.isArray(cssFixResponse.fixes)) {
+          throw new Error('Invalid response format: missing or invalid fixes array');
+        }
       } catch (error) {
         console.error('Failed to parse AI response:', error);
+        console.error('Raw AI response:', aiResponse);
         return res.status(500).json({
           success: false,
-          message: 'Failed to parse AI response'
+          message: 'Failed to parse AI response',
+          details: error instanceof Error ? error.message : 'Unknown parsing error'
         });
       }
 
-      // Generate a test stylesheet
+      // Generate stylesheet
       const stylesheet = `
 /* Generated fixes for ${data.url} */
 /* Device: ${data.deviceInfo.width}x${data.deviceInfo.height} */
@@ -359,37 +362,30 @@ ${cssFixResponse.mediaQueries?.map(mq => `
   }`).join('\n')}
 }`).join('\n') || ''}`;
 
+      console.log('Generated stylesheet:', stylesheet);
+
       res.json({
         success: true,
         fixes: cssFixResponse,
-        stylesheet: stylesheet,
-        previewScript: `
-// Add this script to preview changes
-(function() {
-  const style = document.createElement('style');
-  style.id = 'ai-responsive-fixes';
-  style.textContent = ${JSON.stringify(stylesheet)};
-  document.head.appendChild(style);
-
-  // Add button to toggle fixes
-  const toggle = document.createElement('button');
-  toggle.innerHTML = 'Toggle AI Fixes';
-  toggle.style.cssText = 'position:fixed;top:10px;right:10px;z-index:999999;padding:10px;background:#4CAF50;color:white;border:none;border-radius:4px;cursor:pointer;box-shadow:0 2px 4px rgba(0,0,0,0.2);';
-  toggle.onclick = function() {
-    const sheet = document.getElementById('ai-responsive-fixes');
-    sheet.disabled = !sheet.disabled;
-    this.innerHTML = sheet.disabled ? 'Enable AI Fixes' : 'Disable AI Fixes';
-    this.style.backgroundColor = sheet.disabled ? '#4CAF50' : '#f44336';
-  };
-  document.body.appendChild(toggle);
-})();`
+        stylesheet: stylesheet
       });
     } catch (error) {
       console.error('CSS Generation error:', error);
-      res.status(500).json({ 
+      let errorMessage = 'Failed to generate CSS fixes';
+      let statusCode = 500;
+
+      if (error instanceof z.ZodError) {
+        errorMessage = 'Invalid request format';
+        statusCode = 400;
+      } else if (error instanceof OpenAI.APIError) {
+        errorMessage = 'OpenAI API error: ' + error.message;
+        statusCode = error.status || 500;
+      }
+
+      res.status(statusCode).json({ 
         success: false, 
-        message: 'Failed to generate CSS fixes',
-        error: error instanceof Error ? error.message : 'Unknown error'
+        message: errorMessage,
+        details: error instanceof Error ? error.message : 'Unknown error'
       });
     }
   });
