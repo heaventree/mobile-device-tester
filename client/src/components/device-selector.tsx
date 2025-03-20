@@ -74,7 +74,7 @@ export function DeviceSelector({ onDeviceSelect }: DeviceSelectorProps) {
       </Select>
 
       {showOrientationToggle && selectedDevice?.screenSizes.length === 2 && (
-        <div className="flex gap-2">
+        <div className="flex gap-1">
           <Button
             variant="ghost"
             size="sm"
@@ -82,7 +82,7 @@ export function DeviceSelector({ onDeviceSelect }: DeviceSelectorProps) {
             className={!isLandscape ? 'text-white' : 'text-slate-400 hover:text-white'}
             title="Portrait orientation"
           >
-            <Smartphone className="h-4 w-4" />
+            <Smartphone className="h-5 w-5" />
           </Button>
           <Button
             variant="ghost"
@@ -91,7 +91,7 @@ export function DeviceSelector({ onDeviceSelect }: DeviceSelectorProps) {
             className={isLandscape ? 'text-white' : 'text-slate-400 hover:text-white'}
             title="Landscape orientation"
           >
-            <Smartphone className="h-4 w-4 rotate-90" />
+            <Smartphone className="h-5 w-5 rotate-90" />
           </Button>
         </div>
       )}

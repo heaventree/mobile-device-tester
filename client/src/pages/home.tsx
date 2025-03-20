@@ -68,10 +68,10 @@ export default function Home() {
       <div className="max-w-7xl mx-auto space-y-4">
         {/* Main toolbar */}
         <div className="flex items-center gap-4">
-          <div className="w-[350px]">
+          <div className="w-[280px]">
             <URLInput onValidURL={setUrl} />
           </div>
-          <div className="w-[280px]">
+          <div className="w-[350px]">
             <DeviceSelector onDeviceSelect={handleDeviceSelect} />
           </div>
           <Button
