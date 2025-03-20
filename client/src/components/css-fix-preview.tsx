@@ -165,6 +165,7 @@ export function CSSFixPreview({ url, device, issues, onCSSGenerated }: CSSFixPre
               variant="outline"
               size="sm"
               onClick={downloadStylesheet}
+              className="border-purple-500/20 hover:bg-purple-500/10"
             >
               <Download className="mr-2 h-4 w-4" />
               Download CSS
@@ -173,14 +174,14 @@ export function CSSFixPreview({ url, device, issues, onCSSGenerated }: CSSFixPre
 
           <Collapsible>
             <CollapsibleTrigger asChild>
-              <Button variant="outline" className="w-full justify-between">
+              <Button variant="outline" className="w-full justify-between border-purple-500/20 hover:bg-purple-500/10">
                 <span>View Generated CSS</span>
                 <Code className="h-4 w-4" />
               </Button>
             </CollapsibleTrigger>
             <CollapsibleContent>
-              <Card className="mt-2 p-4">
-                <pre className="whitespace-pre-wrap text-sm">
+              <Card className="mt-2 p-4 bg-slate-900/90 border-purple-500/20">
+                <pre className="whitespace-pre-wrap text-sm text-slate-200">
                   {stylesheet}
                 </pre>
               </Card>
@@ -189,24 +190,24 @@ export function CSSFixPreview({ url, device, issues, onCSSGenerated }: CSSFixPre
 
           {fixes.fixes?.length > 0 && (
             <div className="space-y-2">
-              <h4 className="font-medium">Direct Fixes</h4>
+              <h4 className="font-medium text-slate-200">Direct Fixes</h4>
               {fixes.fixes.map((fix, index) => (
-                <Card key={index} className="p-4">
+                <Card key={index} className="p-4 bg-slate-800/60 border-purple-500/20">
                   <div className="space-y-2">
-                    <div className="font-medium">{fix.description}</div>
-                    <div className="text-sm text-slate-500">Impact: {fix.impact}</div>
-                    <div className="bg-slate-100 p-2 rounded relative group">
+                    <div className="font-medium text-slate-200">{fix.description}</div>
+                    <div className="text-sm text-slate-400">Impact: {fix.impact}</div>
+                    <div className="bg-slate-900/90 p-4 rounded-md relative group">
                       <Button
                         variant="outline"
                         size="sm"
-                        className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity border-purple-500/20 hover:bg-purple-500/10"
                         onClick={() => copyToClipboard(`${fix.selector} { ${fix.css} }`)}
                       >
                         <Copy className="h-4 w-4" />
                       </Button>
-                      <code>{fix.selector} {`{`}</code>
-                      <pre className="text-sm pl-4">{fix.css}</pre>
-                      <code>{`}`}</code>
+                      <code className="text-purple-300">{fix.selector} {`{`}</code>
+                      <pre className="text-sm pl-4 text-slate-300">{fix.css}</pre>
+                      <code className="text-purple-300">{`}`}</code>
                     </div>
                   </div>
                 </Card>
@@ -216,24 +217,24 @@ export function CSSFixPreview({ url, device, issues, onCSSGenerated }: CSSFixPre
 
           {fixes.mediaQueries?.length > 0 && (
             <div className="space-y-2">
-              <h4 className="font-medium">Media Queries</h4>
+              <h4 className="font-medium text-slate-200">Media Queries</h4>
               {fixes.mediaQueries.map((mq, index) => (
-                <Card key={index} className="p-4">
+                <Card key={index} className="p-4 bg-slate-800/60 border-purple-500/20">
                   <div className="space-y-2">
-                    <div className="font-medium">@media {mq.query}</div>
+                    <div className="font-medium text-purple-300">@media {mq.query}</div>
                     {mq.rules.map((rule, ruleIndex) => (
-                      <div key={ruleIndex} className="bg-slate-100 p-2 rounded relative group">
+                      <div key={ruleIndex} className="bg-slate-900/90 p-4 rounded-md relative group">
                         <Button
                           variant="outline"
                           size="sm"
-                          className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                          className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity border-purple-500/20 hover:bg-purple-500/10"
                           onClick={() => copyToClipboard(`@media ${mq.query} { ${rule.selector} { ${rule.css} } }`)}
                         >
                           <Copy className="h-4 w-4" />
                         </Button>
-                        <code>{rule.selector} {`{`}</code>
-                        <pre className="text-sm pl-4">{rule.css}</pre>
-                        <code>{`}`}</code>
+                        <code className="text-purple-300">{rule.selector} {`{`}</code>
+                        <pre className="text-sm pl-4 text-slate-300">{rule.css}</pre>
+                        <code className="text-purple-300">{`}`}</code>
                       </div>
                     ))}
                   </div>
