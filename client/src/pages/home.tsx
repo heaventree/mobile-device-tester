@@ -58,9 +58,10 @@ export default function Home() {
               }
             }}
             disabled={!url || !selectedDevice}
-            className="ml-auto"
+            variant="default"
+            className="w-[100px] bg-blue-600 hover:bg-blue-700"
           >
-            Test Website
+            Test
           </Button>
         </div>
 
