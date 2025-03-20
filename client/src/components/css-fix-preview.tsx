@@ -25,9 +25,10 @@ interface CSSFixPreviewProps {
   url: string;
   device: { width: number; height: number };
   issues: any[];
+  onCSSGenerated?: (css: string) => void;
 }
 
-export function CSSFixPreview({ url, device, issues }: CSSFixPreviewProps) {
+export function CSSFixPreview({ url, device, issues, onCSSGenerated }: CSSFixPreviewProps) {
   const [isGenerating, setIsGenerating] = React.useState(false);
   const [fixes, setFixes] = React.useState<{ fixes: CSSFix[], mediaQueries: MediaQuery[] } | null>(null);
   const [stylesheet, setStylesheet] = React.useState<string | null>(null);
@@ -55,6 +56,7 @@ export function CSSFixPreview({ url, device, issues }: CSSFixPreviewProps) {
       setFixes(data.fixes);
       setStylesheet(data.stylesheet);
       setPreviewScript(data.previewScript);
+      onCSSGenerated?.(data.stylesheet);
 
       toast({
         title: "CSS Fixes Generated",

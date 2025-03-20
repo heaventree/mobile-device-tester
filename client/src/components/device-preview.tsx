@@ -3,7 +3,7 @@ import { Device, ScreenSize } from '@shared/schema';
 import { Card } from '@/components/ui/card';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
-import { Camera } from 'lucide-react';
+import { Camera, Eye, EyeOff } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import { useToast } from '@/hooks/use-toast';
 import { AITester } from './ai-tester';
@@ -20,13 +20,14 @@ export function DevicePreview({ url, device, screenSize }: DevicePreviewProps) {
   const iframeRef = React.useRef<HTMLIFrameElement>(null);
   const [scale, setScale] = React.useState(1);
   const { toast } = useToast();
-  const [results, setResults] = React.useState([]); //Added state to store results
+  const [results, setResults] = React.useState([]);
+  const [cssPreviewEnabled, setCssPreviewEnabled] = React.useState(false);
+  const [generatedCSS, setGeneratedCSS] = React.useState<string | null>(null);
 
   const updateScale = React.useCallback(() => {
     if (containerRef.current && screenSize) {
       const containerHeight = 600; 
       const containerWidth = containerRef.current.clientWidth;
-
       const scaleX = containerWidth / screenSize.width;
       const scaleY = containerHeight / screenSize.height;
       setScale(Math.min(scaleX, scaleY, 1)); 
@@ -39,11 +40,40 @@ export function DevicePreview({ url, device, screenSize }: DevicePreviewProps) {
     return () => window.removeEventListener('resize', updateScale);
   }, [updateScale]);
 
+  // Update iframe content when CSS preview is toggled
   React.useEffect(() => {
-    if (iframeRef.current && url) {
-      iframeRef.current.src = url;
-    }
-  }, [url, screenSize]);
+    const iframe = iframeRef.current;
+    if (!iframe || !url) return;
+
+    iframe.src = 'about:blank';
+    iframe.onload = async () => {
+      try {
+        // Fetch the original page content
+        const response = await fetch(`/api/fetch-page?url=${encodeURIComponent(url)}`);
+        const html = await response.text();
+
+        // Get the iframe's document
+        const doc = iframe.contentDocument;
+        if (!doc) return;
+
+        // Write the base HTML
+        doc.open();
+        doc.write(html);
+
+        // If CSS preview is enabled, inject our CSS
+        if (cssPreviewEnabled && generatedCSS) {
+          const style = doc.createElement('style');
+          style.id = 'ai-responsive-fixes';
+          style.textContent = generatedCSS;
+          doc.head.appendChild(style);
+        }
+
+        doc.close();
+      } catch (error) {
+        console.error('Error loading preview:', error);
+      }
+    };
+  }, [url, cssPreviewEnabled, generatedCSS]);
 
   const captureScreenshot = async () => {
     if (!containerRef.current || !device) return;
@@ -84,15 +114,37 @@ export function DevicePreview({ url, device, screenSize }: DevicePreviewProps) {
         <div className="text-sm font-medium text-slate-200">
           {device.name} - {screenSize.width}x{screenSize.height}
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={captureScreenshot}
-          className="gap-2"
-        >
-          <Camera className="h-4 w-4" />
-          Capture
-        </Button>
+        <div className="flex items-center gap-2">
+          {generatedCSS && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCssPreviewEnabled(!cssPreviewEnabled)}
+              className="gap-2"
+            >
+              {cssPreviewEnabled ? (
+                <>
+                  <EyeOff className="h-4 w-4" />
+                  Disable CSS Fixes
+                </>
+              ) : (
+                <>
+                  <Eye className="h-4 w-4" />
+                  Preview CSS Fixes
+                </>
+              )}
+            </Button>
+          )}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={captureScreenshot}
+            className="gap-2"
+          >
+            <Camera className="h-4 w-4" />
+            Capture
+          </Button>
+        </div>
       </div>
       <div 
         ref={containerRef}
@@ -113,7 +165,6 @@ export function DevicePreview({ url, device, screenSize }: DevicePreviewProps) {
         >
           <iframe
             ref={iframeRef}
-            src={url}
             style={{
               width: '100%',
               height: '100%',
@@ -131,7 +182,7 @@ export function DevicePreview({ url, device, screenSize }: DevicePreviewProps) {
           url={url}
           device={screenSize}
           onAnalysisComplete={(newResults) => {
-            setResults(newResults); // Update results state
+            setResults(newResults);
             const criticalErrors = newResults.filter(r => r.type === 'error');
             if (criticalErrors.length > 0) {
               toast({
@@ -147,6 +198,10 @@ export function DevicePreview({ url, device, screenSize }: DevicePreviewProps) {
             url={url}
             device={screenSize}
             issues={results}
+            onCSSGenerated={(css) => {
+              setGeneratedCSS(css);
+              setCssPreviewEnabled(true);
+            }}
           />
         </div>
       </div>
