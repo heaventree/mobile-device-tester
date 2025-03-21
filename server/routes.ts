@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertDeviceSchema } from "@shared/schema";
+import { insertDeviceSchema, userProgressSchema, progressStatsSchema } from "@shared/schema";
 import { z } from "zod";
 import OpenAI from 'openai';
 import type { ChatCompletionMessageParam } from 'openai/resources/chat/completions';
@@ -1027,29 +1027,7 @@ Return a JSON object with this structure:
   // Add new route for user progress
   app.get("/api/user/progress", async (_req, res) => {
     try {
-      // Return default initial progress
-      res.json({
-        stats: {
-          sitesAnalyzed: 0,
-          testsRun: 0,
-          issuesFixed: 0,
-          perfectScores: 0
-        },
-        achievements: [],
-        totalPoints: 0,
-        level: 1,
-        lastActive: new Date()
-      });
-    } catch (error) {
-      console.error('Error fetching user progress:', error);
-      res.status(500).json({ message: "Failed to fetch user progress" });
-    }
-  });
-  // Add this near the other API routes
-  app.get("/api/user/progress", async (_req, res) => {
-    try {
-      // For testing purposes, return a default progress object
-      res.json({
+      const defaultProgress = {
         userId: 'anonymous',
         stats: {
           sitesAnalyzed: 0,
@@ -1060,8 +1038,12 @@ Return a JSON object with this structure:
         achievements: [],
         totalPoints: 0,
         level: 1,
-        lastActive: new Date()
-      });
+        lastActive: new Date().toISOString()
+      };
+
+      // Validate the response using the schema
+      const validatedProgress = userProgressSchema.parse(defaultProgress);
+      res.json(validatedProgress);
     } catch (error) {
       console.error('Error fetching user progress:', error);
       res.status(500).json({ 
@@ -1076,16 +1058,26 @@ Return a JSON object with this structure:
     try {
       const { stats, lastActive } = req.body;
 
-      // For testing, just echo back the updated stats
-      res.json({
-        stats,
-        lastActive: new Date(lastActive)
-      });
+      // Validate incoming stats
+      const validatedStats = progressStatsSchema.parse(stats);
+
+      const updatedProgress = {
+        userId: 'anonymous',
+        stats: validatedStats,
+        achievements: [],
+        totalPoints: 0,
+        level: 1,
+        lastActive: new Date(lastActive).toISOString()
+      };
+
+      // Validate the complete response
+      const validatedProgress = userProgressSchema.parse(updatedProgress);
+      res.json(validatedProgress);
     } catch (error) {
       console.error('Error updating user progress:', error);
-      res.status(500).json({ 
+      res.status(400).json({ 
         success: false,
-        message: "Failed to update user progress",
+        message: "Invalid progress data",
         error: error instanceof Error ? error.message : 'Unknown error'
       });
     }

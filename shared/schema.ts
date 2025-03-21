@@ -44,18 +44,20 @@ export const achievementSchema = z.object({
   })
 });
 
-// Define user progress type
+// Define user progress type with proper zod validation
+export const progressStatsSchema = z.object({
+  sitesAnalyzed: z.number().default(0),
+  testsRun: z.number().default(0),
+  issuesFixed: z.number().default(0),
+  perfectScores: z.number().default(0)
+});
+
 export const userProgressSchema = z.object({
   userId: z.string(),
-  totalPoints: z.number(),
-  level: z.number(),
-  achievements: z.array(z.string()), // Achievement IDs
-  stats: z.object({
-    sitesAnalyzed: z.number(),
-    testsRun: z.number(),
-    issuesFixed: z.number(),
-    perfectScores: z.number()
-  }),
+  totalPoints: z.number().default(0),
+  level: z.number().default(1),
+  achievements: z.array(z.string()).default([]), // Achievement IDs
+  stats: progressStatsSchema,
   lastActive: z.string() // ISO date string
 });
 
@@ -98,5 +100,6 @@ export type Device = typeof devices.$inferSelect;
 export type InsertDevice = z.infer<typeof insertDeviceSchema>;
 export type ScreenSize = z.infer<typeof screenSizeSchema>;
 export type Achievement = typeof achievements.$inferSelect;
-export type UserProgress = typeof userProgress.$inferSelect;
+export type UserProgress = z.infer<typeof userProgressSchema>;
 export type InsertUserProgress = z.infer<typeof insertUserProgressSchema>;
+export type ProgressStats = z.infer<typeof progressStatsSchema>;

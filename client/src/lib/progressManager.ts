@@ -1,5 +1,6 @@
 import { apiRequest } from '@/lib/queryClient';
 import type { UserProgress } from '@shared/schema';
+import { userProgressSchema } from '@shared/schema';
 
 class ProgressManager {
   private static instance: ProgressManager;
@@ -22,7 +23,7 @@ class ProgressManager {
 
   private getDefaultProgress(): UserProgress {
     return {
-      userId: 'anonymous', // Default user ID for testing
+      userId: 'anonymous',
       stats: {
         sitesAnalyzed: 0,
         testsRun: 0,
@@ -32,7 +33,7 @@ class ProgressManager {
       achievements: [],
       totalPoints: 0,
       level: 1,
-      lastActive: new Date()
+      lastActive: new Date().toISOString()
     };
   }
 
@@ -49,18 +50,9 @@ class ProgressManager {
       }
 
       const data = await response.json();
+      const validatedData = userProgressSchema.parse(data);
 
-      // Use default progress structure and merge with received data
-      this.progress = {
-        ...this.getDefaultProgress(),
-        ...data,
-        stats: {
-          ...this.getDefaultProgress().stats,
-          ...(data?.stats || {})
-        },
-        lastActive: new Date(data?.lastActive || Date.now())
-      };
-
+      this.progress = validatedData;
       this.initialized = true;
     } catch (error) {
       console.error('Failed to initialize progress:', error);
@@ -83,7 +75,7 @@ class ProgressManager {
 
       const update = {
         stats,
-        lastActive: new Date()
+        lastActive: new Date().toISOString()
       };
 
       const response = await apiRequest('PATCH', '/api/user/progress', update);
@@ -93,13 +85,9 @@ class ProgressManager {
       }
 
       const data = await response.json();
+      const validatedData = userProgressSchema.parse(data);
 
-      // Update local progress while maintaining the structure
-      this.progress = {
-        ...this.progress!,
-        stats: data.stats || this.progress!.stats,
-        lastActive: new Date(data.lastActive || Date.now())
-      };
+      this.progress = validatedData;
     } catch (error) {
       console.error('Failed to update progress:', error);
       // Don't throw, just log the error
