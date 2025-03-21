@@ -59,10 +59,18 @@ export function DevicePreview({ url, device, screenSize, wordPressConfig }: Devi
 
     try {
       setIsLoadingPreview(true);
-      const response = await fetch(`/api/fetch-page?url=${encodeURIComponent(url)}`);
-      if (!response.ok) throw new Error('Failed to fetch page content');
-      const html = await response.text();
+      // Only fetch if URL is valid
+      if (!url.includes('.')) {
+        return;
+      }
 
+      const response = await fetch(`/api/fetch-page?url=${encodeURIComponent(url)}`);
+      if (!response.ok) {
+        console.error('Error fetching page:', response.statusText);
+        return;
+      }
+
+      const html = await response.text();
       const doc = iframeRef.current.contentDocument;
       if (!doc) return;
 
@@ -85,8 +93,9 @@ export function DevicePreview({ url, device, screenSize, wordPressConfig }: Devi
   }, [url, cssPreviewEnabled, generatedCSS, isLoadingPreview]);
 
   React.useEffect(() => {
+    if (!url.includes('.')) return; // Only update for valid-looking URLs
     updateIframeContent();
-  }, [url]);
+  }, [url, updateIframeContent]);
 
   const handleRefresh = () => {
     updateIframeContent();

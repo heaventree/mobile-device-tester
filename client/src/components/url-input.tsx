@@ -1,9 +1,9 @@
 import React from 'react';
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { ContextualTooltip } from "@/components/ui/contextual-tooltip";
 import { Info } from "lucide-react";
+import { useDebounce } from '@/hooks/use-debounce';
 
 interface URLInputProps {
   onValidURL: (url: string) => void;
@@ -11,23 +11,32 @@ interface URLInputProps {
 
 export function URLInput({ onValidURL }: URLInputProps) {
   const [url, setUrl] = React.useState('');
+  const [isTyping, setIsTyping] = React.useState(false);
   const { toast } = useToast();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const debouncedUrl = useDebounce(url, 500); // 500ms delay
+
+  React.useEffect(() => {
+    if (!debouncedUrl) return;
+    if (isTyping) return;
 
     try {
-      // Validate URL format client-side first
-      new URL(url);
-      onValidURL(url);
+      // Only validate and update if it's a complete URL
+      if (debouncedUrl.includes('.')) {
+        const urlObj = new URL(debouncedUrl.startsWith('http') ? debouncedUrl : `https://${debouncedUrl}`);
+        onValidURL(urlObj.toString());
+      }
     } catch (error) {
-      toast({
-        title: "Invalid URL",
-        description: "Please enter a valid website URL",
-        variant: "destructive"
-      });
+      // Don't show error toast during typing
+      if (!isTyping) {
+        toast({
+          title: "Invalid URL",
+          description: "Please enter a valid website URL",
+          variant: "destructive"
+        });
+      }
     }
-  };
+  }, [debouncedUrl, onValidURL, isTyping, toast]);
 
   const handleFocus = (e: React.FocusEvent<HTMLInputElement>) => {
     if (!url) {
@@ -40,7 +49,7 @@ export function URLInput({ onValidURL }: URLInputProps) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="flex gap-2 relative group">
+    <div className="flex gap-2 relative group">
       <div className="relative flex-1">
         <Input
           type="url"
@@ -48,15 +57,11 @@ export function URLInput({ onValidURL }: URLInputProps) {
           value={url}
           onFocus={handleFocus}
           onChange={(e) => {
+            setIsTyping(true);
             setUrl(e.target.value);
-            if (e.target.value) {
-              try {
-                new URL(e.target.value);
-                onValidURL(e.target.value);
-              } catch (error) {
-                // Silently fail on invalid URL during typing
-              }
-            }
+          }}
+          onBlur={() => {
+            setIsTyping(false);
           }}
           className="flex-1 pr-8"
         />
@@ -78,6 +83,6 @@ export function URLInput({ onValidURL }: URLInputProps) {
           </ContextualTooltip>
         </div>
       </div>
-    </form>
+    </div>
   );
 }
