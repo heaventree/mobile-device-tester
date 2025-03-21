@@ -4,11 +4,11 @@ import { DeviceSelector } from '@/components/device-selector';
 import { DevicePreview } from '@/components/device-preview';
 import type { Device, ScreenSize } from '@shared/schema';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Link } from 'wouter';
 import { Icon } from '@/components/ui/icon';
-import { useToast } from '@/hooks/use-toast';
-import { apiRequest } from '@/lib/queryClient';
-import { ContextualTooltip } from '@/components/ui/contextual-tooltip'; // Fix import path
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 
 const QUICK_DEVICES = [
   { 
@@ -61,12 +61,19 @@ const QUICK_DEVICES = [
   }
 ];
 
+interface WordPressConfig {
+  siteUrl: string;
+  apiKey: string;
+  pageId: number;
+}
+
 export default function Home() {
   const [url, setUrl] = React.useState('');
   const [selectedDevice, setSelectedDevice] = React.useState<Device | null>(null);
   const [selectedScreenSize, setSelectedScreenSize] = React.useState<ScreenSize | null>(null);
   const [devices, setDevices] = React.useState<Device[]>([]);
-  const { toast } = useToast();
+  const [wpConfig, setWpConfig] = React.useState<WordPressConfig | undefined>();
+  const [isWpConfigOpen, setIsWpConfigOpen] = React.useState(false);
 
   const handleDeviceSelect = (device: Device, screenSize: ScreenSize) => {
     setSelectedDevice(device);
@@ -150,29 +157,57 @@ export default function Home() {
             </div>
           </div>
 
+          {/* WordPress Configuration */}
+          <div className="mt-4">
+            <Collapsible open={isWpConfigOpen} onOpenChange={setIsWpConfigOpen}>
+              <CollapsibleTrigger className="flex items-center gap-2 text-sm text-slate-400 hover:text-white">
+                {isWpConfigOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                WordPress Configuration
+              </CollapsibleTrigger>
+              <CollapsibleContent className="mt-4 space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <Input
+                    placeholder="WordPress Site URL"
+                    value={wpConfig?.siteUrl || ''}
+                    onChange={(e) => setWpConfig(prev => ({ ...prev, siteUrl: e.target.value }))}
+                    className="bg-slate-800/50"
+                  />
+                  <Input
+                    placeholder="API Key"
+                    value={wpConfig?.apiKey || ''}
+                    onChange={(e) => setWpConfig(prev => ({ ...prev, apiKey: e.target.value }))}
+                    className="bg-slate-800/50"
+                  />
+                  <Input
+                    type="number"
+                    placeholder="Page ID"
+                    value={wpConfig?.pageId || ''}
+                    onChange={(e) => setWpConfig(prev => ({ ...prev, pageId: parseInt(e.target.value) || 0 }))}
+                    className="bg-slate-800/50"
+                  />
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
+          </div>
+
           {/* Quick Device Selection */}
           <div className="mt-4 flex items-center gap-2 flex-wrap">
             {QUICK_DEVICES.map((device) => (
-              <ContextualTooltip
+              <Button
                 key={device.id}
-                content={device.description}
-                side="bottom"
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  const foundDevice = devices?.find(d => d.id === device.id);
+                  if (foundDevice) {
+                    handleDeviceSelect(foundDevice, foundDevice.screenSizes[0]);
+                  }
+                }}
+                className="text-slate-300 hover:text-white hover:bg-slate-700/50 transition-all"
               >
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    const foundDevice = devices?.find(d => d.id === device.id);
-                    if (foundDevice) {
-                      handleDeviceSelect(foundDevice, foundDevice.screenSizes[0]);
-                    }
-                  }}
-                  className="text-slate-300 hover:text-white hover:bg-slate-700/50 transition-all"
-                >
-                  <Icon icon={device.icon} className="mr-2" size={16} />
-                  {device.label}
-                </Button>
-              </ContextualTooltip>
+                <Icon icon={device.icon} className="mr-2" size={16} />
+                {device.label}
+              </Button>
             ))}
           </div>
         </div>
@@ -183,6 +218,7 @@ export default function Home() {
             url={url}
             device={selectedDevice}
             screenSize={selectedScreenSize}
+            wordPressConfig={wpConfig}
           />
         </div>
       </div>

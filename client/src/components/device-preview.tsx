@@ -12,16 +12,21 @@ import { DesignScanner } from './design-scanner';
 import type { DesignIssue } from './design-scanner';
 import { PerformanceAnalyzer } from './performance-analyzer';
 import { UserStatsDashboard } from './user-stats-dashboard';
-// Temporarily disable color analyzer
-// import { ColorAnalyzer } from './color-analyzer';
+
+interface WordPressConfig {
+  siteUrl: string;
+  apiKey: string;
+  pageId: number;
+}
 
 interface DevicePreviewProps {
   url: string;
   device: Device | null;
   screenSize: ScreenSize | null;
+  wordPressConfig?: WordPressConfig;
 }
 
-export function DevicePreview({ url, device, screenSize }: DevicePreviewProps) {
+export function DevicePreview({ url, device, screenSize, wordPressConfig }: DevicePreviewProps) {
   const containerRef = React.useRef<HTMLDivElement>(null);
   const iframeRef = React.useRef<HTMLIFrameElement>(null);
   const [scale, setScale] = React.useState(1);
@@ -308,6 +313,7 @@ export function DevicePreview({ url, device, screenSize }: DevicePreviewProps) {
               setCssPreviewEnabled(true);
               updateIframeContent();
             }}
+            wordPressConfig={wordPressConfig}
           />
         </Card>
 
