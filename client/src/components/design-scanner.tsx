@@ -6,16 +6,13 @@ import { Button } from '@/components/ui/button';
 import { apiRequest } from '@/lib/queryClient';
 
 interface DesignIssue {
-  type: 'overlap' | 'overflow' | 'spacing' | 'contrast';
+  type: 'layout' | 'responsive' | 'spacing' | 'visual';
   title: string;
   description: string;
   element: string;
-  bounds?: {
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-  };
+  currentCSS?: string;
+  suggestedFix?: string;
+  impact: 'high' | 'medium' | 'low';
 }
 
 interface DesignScannerProps {
@@ -55,15 +52,6 @@ export function DesignScanner({ url, iframeRef, onIssuesFound }: DesignScannerPr
         }
       });
 
-      // Remove all attributes except class, id, and basic layout properties
-      mainContent.querySelectorAll('*').forEach(el => {
-        Array.from(el.attributes).forEach(attr => {
-          if (!['class', 'id', 'width', 'height'].includes(attr.name)) {
-            el.removeAttribute(attr.name);
-          }
-        });
-      });
-
       const simplifiedHtml = mainContent.outerHTML.substring(0, 8000); // Limit content size
       const viewportWidth = doc.documentElement.clientWidth;
       const viewportHeight = doc.documentElement.clientHeight;
@@ -79,27 +67,9 @@ export function DesignScanner({ url, iframeRef, onIssuesFound }: DesignScannerPr
         throw new Error(`${response.status}: ${await response.text()}`);
       }
 
-      const designIssues = await response.json();
-
-      // Process the issues to ensure coordinates are relative to the iframe
-      const processedIssues = designIssues.map((issue: DesignIssue) => {
-        if (issue.bounds) {
-          const element = doc.querySelector(issue.element);
-          if (element) {
-            const rect = element.getBoundingClientRect();
-            issue.bounds = {
-              x: rect.left,
-              y: rect.top,
-              width: rect.width,
-              height: rect.height
-            };
-          }
-        }
-        return issue;
-      });
-
-      setIssues(processedIssues);
-      onIssuesFound(processedIssues);
+      const issues = await response.json();
+      setIssues(issues);
+      onIssuesFound(issues);
 
     } catch (error) {
       console.error('Design scan error:', error);
@@ -111,16 +81,29 @@ export function DesignScanner({ url, iframeRef, onIssuesFound }: DesignScannerPr
 
   const getIssueIcon = (type: DesignIssue['type']) => {
     switch (type) {
-      case 'overlap':
+      case 'layout':
         return <Layout className="h-4 w-4" />;
-      case 'overflow':
+      case 'responsive':
         return <Maximize className="h-4 w-4" />;
       case 'spacing':
         return <Move className="h-4 w-4" />;
-      case 'contrast':
+      case 'visual':
         return <Type className="h-4 w-4" />;
       default:
         return <AlertCircle className="h-4 w-4" />;
+    }
+  };
+
+  const getIssueClass = (impact: DesignIssue['impact']) => {
+    switch (impact) {
+      case 'high':
+        return 'border-red-500/20 bg-red-500/10';
+      case 'medium':
+        return 'border-yellow-500/20 bg-yellow-500/10';
+      case 'low':
+        return 'border-blue-500/20 bg-blue-500/10';
+      default:
+        return 'border-slate-500/20 bg-slate-500/10';
     }
   };
 
@@ -156,20 +139,44 @@ export function DesignScanner({ url, iframeRef, onIssuesFound }: DesignScannerPr
         {issues.map((issue, index) => (
           <Alert
             key={index}
-            variant={issue.type === 'overflow' ? 'destructive' : 'default'}
-            className="bg-slate-800/50 border-slate-700"
+            className={`border ${getIssueClass(issue.impact)}`}
           >
             {getIssueIcon(issue.type)}
             <AlertTitle className="flex items-center gap-2">
               {issue.title}
+              <span className={`text-xs px-2 py-0.5 rounded-full ${
+                issue.impact === 'high' ? 'bg-red-500/20 text-red-200' :
+                issue.impact === 'medium' ? 'bg-yellow-500/20 text-yellow-200' :
+                'bg-blue-500/20 text-blue-200'
+              }`}>
+                {issue.impact}
+              </span>
             </AlertTitle>
             <AlertDescription>
-              {issue.description}
-              {issue.element && (
-                <div className="mt-1 text-sm text-slate-400">
-                  Element: {issue.element}
-                </div>
-              )}
+              <div className="space-y-2">
+                <p>{issue.description}</p>
+                {issue.element && (
+                  <div className="text-sm font-mono bg-slate-900/50 p-2 rounded">
+                    Selector: {issue.element}
+                  </div>
+                )}
+                {issue.currentCSS && (
+                  <div className="text-sm">
+                    <div className="text-red-400">Current CSS:</div>
+                    <pre className="font-mono bg-slate-900/50 p-2 rounded text-red-300">
+                      {issue.currentCSS}
+                    </pre>
+                  </div>
+                )}
+                {issue.suggestedFix && (
+                  <div className="text-sm">
+                    <div className="text-green-400">Suggested Fix:</div>
+                    <pre className="font-mono bg-slate-900/50 p-2 rounded text-green-300">
+                      {issue.suggestedFix}
+                    </pre>
+                  </div>
+                )}
+              </div>
             </AlertDescription>
           </Alert>
         ))}

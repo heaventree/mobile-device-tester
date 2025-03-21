@@ -258,21 +258,23 @@ Provide a brief, actionable analysis focusing on critical issues first.`
       const messages: ChatCompletionMessageParam[] = [
         {
           role: 'system',
-          content: `Analyze HTML for key design issues:
-1. Overlapping elements
-2. Viewport overflow
-3. Spacing problems
-4. Contrast issues
+          content: `You are a CSS expert. Analyze HTML for styling issues focusing on:
+1. Layout problems (overlapping, overflow)
+2. Responsive design issues
+3. Spacing and alignment
+4. Visual hierarchy
 
 Return JSON array of issues:
 {
   "issues": [
     {
-      "type": "overlap|overflow|spacing|contrast",
-      "title": "brief title",
-      "description": "short description",
-      "element": "affected element",
-      "bounds": {"x": number, "y": number, "width": number, "height": number}
+      "type": "layout|responsive|spacing|visual",
+      "title": "brief issue title",
+      "description": "what's wrong",
+      "element": "affected CSS selector",
+      "currentCSS": "problematic CSS properties",
+      "suggestedFix": "CSS properties to fix the issue",
+      "impact": "high|medium|low"
     }
   ]
 }`
@@ -284,7 +286,7 @@ Viewport: ${viewportWidth}x${viewportHeight}
 
 ${html}
 
-Analyze for design issues. Return JSON only.`
+Analyze for styling issues. Return JSON only.`
         }
       ];
 
