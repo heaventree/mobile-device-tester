@@ -59,14 +59,22 @@ export function DevicePreview({ url, device, screenSize, wordPressConfig }: Devi
 
     try {
       setIsLoadingPreview(true);
-      // Only fetch if URL is valid
-      if (!url.includes('.')) {
+
+      // Ensure URL is valid before making request
+      const validUrl = url.startsWith('http') ? url : `https://${url}`;
+      try {
+        new URL(validUrl);
+      } catch {
         return;
       }
 
-      const response = await fetch(`/api/fetch-page?url=${encodeURIComponent(url)}`);
+      const response = await fetch(`/api/fetch-page?url=${encodeURIComponent(validUrl)}`);
       if (!response.ok) {
-        console.error('Error fetching page:', response.statusText);
+        toast({
+          title: "Error loading preview",
+          description: "Failed to load the website. Please check the URL and try again.",
+          variant: "destructive"
+        });
         return;
       }
 
@@ -85,16 +93,43 @@ export function DevicePreview({ url, device, screenSize, wordPressConfig }: Devi
       }
 
       doc.close();
+
+      // Check if the iframe loaded successfully
+      iframeRef.current.onload = () => {
+        setIsLoadingPreview(false);
+      };
+
+      iframeRef.current.onerror = () => {
+        toast({
+          title: "Preview Error",
+          description: "Failed to load the website in the preview.",
+          variant: "destructive"
+        });
+        setIsLoadingPreview(false);
+      };
+
     } catch (error) {
       console.error('Error updating preview:', error);
+      toast({
+        title: "Preview Error",
+        description: "An error occurred while updating the preview.",
+        variant: "destructive"
+      });
     } finally {
       setIsLoadingPreview(false);
     }
-  }, [url, cssPreviewEnabled, generatedCSS, isLoadingPreview]);
+  }, [url, cssPreviewEnabled, generatedCSS, isLoadingPreview, toast]);
 
   React.useEffect(() => {
-    if (!url.includes('.')) return; // Only update for valid-looking URLs
-    updateIframeContent();
+    if (!url) return;
+
+    try {
+      // Only update for valid URLs
+      new URL(url.startsWith('http') ? url : `https://${url}`);
+      updateIframeContent();
+    } catch {
+      // Invalid URL, skip update
+    }
   }, [url, updateIframeContent]);
 
   const handleRefresh = () => {

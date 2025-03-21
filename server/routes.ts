@@ -233,7 +233,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Proxy route to fetch webpage content
+  // Add CORS handling for preflight requests
+  app.options("/api/fetch-page", (req, res) => {
+    res.set('Access-Control-Allow-Origin', '*');
+    res.set('Access-Control-Allow-Methods', 'GET, OPTIONS');
+    res.set('Access-Control-Allow-Headers', 'Content-Type');
+    res.set('Access-Control-Max-Age', '86400'); // 24 hours
+    res.status(204).end();
+  });
+
+  // Fetch webpage endpoint
   app.get("/api/fetch-page", async (req, res) => {
     try {
       const { url } = req.query;
@@ -242,10 +251,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Validate URL format
+      let validUrl: string;
       try {
-        new URL(url);
+        const urlObj = new URL(url.startsWith('http') ? url : `https://${url}`);
+        validUrl = urlObj.toString();
+        console.debug('Fetching page from URL:', validUrl);
       } catch (error) {
-        return res.status(400).json({ 
+        console.error('URL validation error:', error);
+        return res.status(400).json({
           error: 'Invalid URL format',
           details: 'Please provide a valid URL with protocol (e.g., https://example.com)'
         });
@@ -256,7 +269,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const timeout = setTimeout(() => controller.abort(), 10000);
 
       try {
-        const response = await fetch(url, { 
+        console.debug('Starting fetch request...');
+        const response = await fetch(validUrl, {
           signal: controller.signal,
           headers: {
             'User-Agent': 'Mozilla/5.0 (compatible; DeviceTester/1.0)',
@@ -267,25 +281,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
         clearTimeout(timeout);
 
         if (!response.ok) {
+          console.error('Fetch response not OK:', response.status, response.statusText);
           throw new Error(`HTTP error! status: ${response.status}`);
         }
 
         const contentType = response.headers.get('content-type');
-        res.set('Content-Type', contentType || 'text/html');
-        res.set('Access-Control-Allow-Origin', '*');
-        res.set('Access-Control-Allow-Methods', 'GET, OPTIONS');
-        res.set('Access-Control-Allow-Headers', 'Content-Type');
+        console.debug('Response content type:', contentType);
+
+        // Set security headers for iframe loading
+        res.set({
+          'Content-Type': contentType || 'text/html',
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type',
+          'X-Frame-Options': 'ALLOWALL',
+          'Content-Security-Policy': "frame-ancestors *",
+          'X-Content-Type-Options': 'nosniff'
+        });
 
         const html = await response.text();
+        console.debug('Received HTML content length:', html.length);
 
         // Process HTML to make it work in an iframe
         const processedHtml = html
           .replace(/<base[^>]*>/g, '') // Remove base tags
           .replace(/(href|src)=["']\/\//g, '$1="https://') // Fix protocol-relative URLs
-          .replace(/(href|src)=["']\//g, `$1="${url.replace(/\/[^/]*$/, '')}/`); // Fix relative URLs
+          .replace(/(href|src)=["']\//g, `$1="${validUrl.replace(/\/[^/]*$/, '')}/`); // Fix relative URLs
 
         res.send(processedHtml);
+        console.debug('Successfully sent processed HTML');
       } catch (fetchError) {
+        clearTimeout(timeout);
+        console.error('Fetch error:', fetchError);
+
         if (fetchError.name === 'AbortError') {
           return res.status(504).json({
             error: 'Request timeout',
@@ -345,7 +373,7 @@ Provide a brief, actionable analysis focusing on critical issues first.`
         model: "gpt-4",
         messages,
         temperature: 0.7,
-        max_tokens: 500 
+        max_tokens: 500
       });
 
       const aiAnalysis = completion.choices[0].message.content;
@@ -953,16 +981,13 @@ Return a JSON object with this structure:
 
         const result = await wpResponse.json();
         res.json(result);
-
       } catch (wpError) {
-        // Handle network or WordPress API errors
         console.error('WordPress API request failed:', wpError);
         res.status(500).json({
           success: false,
-          message: wpError instanceof Error? wpError.message : 'Failed to communicate with WordPress'
+          message: wpError instanceof Error ? wpError.message : 'Failed to communicate with WordPress'
         });
       }
-
     } catch (error) {
       console.error('Error applying WordPress CSS:', error);
       res.status(500).json({
@@ -1046,7 +1071,7 @@ Return a JSON object with this structure:
       res.json(validatedProgress);
     } catch (error) {
       console.error('Error fetching user progress:', error);
-      res.status(500).json({ 
+      res.status(500).json({
         success: false,
         message: "Failed to fetch user progress",
         error: error instanceof Error ? error.message : 'Unknown error'
@@ -1075,7 +1100,7 @@ Return a JSON object with this structure:
       res.json(validatedProgress);
     } catch (error) {
       console.error('Error updating user progress:', error);
-      res.status(400).json({ 
+      res.status(400).json({
         success: false,
         message: "Invalid progress data",
         error: error instanceof Error ? error.message : 'Unknown error'

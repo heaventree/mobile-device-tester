@@ -14,7 +14,7 @@ export function URLInput({ onValidURL }: URLInputProps) {
   const [isTyping, setIsTyping] = React.useState(false);
   const { toast } = useToast();
 
-  const debouncedUrl = useDebounce(url, 500); // 500ms delay
+  const debouncedUrl = useDebounce(url, 800); // Increased delay to 800ms
 
   React.useEffect(() => {
     if (!debouncedUrl) return;
@@ -22,13 +22,16 @@ export function URLInput({ onValidURL }: URLInputProps) {
 
     try {
       // Only validate and update if it's a complete URL
-      if (debouncedUrl.includes('.')) {
+      if (debouncedUrl.includes('.') && debouncedUrl.length > 4) {
         const urlObj = new URL(debouncedUrl.startsWith('http') ? debouncedUrl : `https://${debouncedUrl}`);
-        onValidURL(urlObj.toString());
+        const validUrl = urlObj.toString();
+        console.debug('Valid URL:', validUrl);
+        onValidURL(validUrl);
       }
     } catch (error) {
       // Don't show error toast during typing
       if (!isTyping) {
+        console.debug('URL validation error:', error);
         toast({
           title: "Invalid URL",
           description: "Please enter a valid website URL",
@@ -62,6 +65,15 @@ export function URLInput({ onValidURL }: URLInputProps) {
           }}
           onBlur={() => {
             setIsTyping(false);
+            // Trigger validation on blur
+            if (url) {
+              try {
+                const urlObj = new URL(url.startsWith('http') ? url : `https://${url}`);
+                onValidURL(urlObj.toString());
+              } catch (error) {
+                // Already handled in effect
+              }
+            }
           }}
           className="flex-1 pr-8"
         />
