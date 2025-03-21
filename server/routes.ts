@@ -1045,6 +1045,51 @@ Return a JSON object with this structure:
       res.status(500).json({ message: "Failed to fetch user progress" });
     }
   });
+  // Add this near the other API routes
+  app.get("/api/user/progress", async (_req, res) => {
+    try {
+      // For testing purposes, return a default progress object
+      res.json({
+        userId: 'anonymous',
+        stats: {
+          sitesAnalyzed: 0,
+          testsRun: 0,
+          issuesFixed: 0,
+          perfectScores: 0
+        },
+        achievements: [],
+        totalPoints: 0,
+        level: 1,
+        lastActive: new Date()
+      });
+    } catch (error) {
+      console.error('Error fetching user progress:', error);
+      res.status(500).json({ 
+        success: false,
+        message: "Failed to fetch user progress",
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  app.patch("/api/user/progress", async (req, res) => {
+    try {
+      const { stats, lastActive } = req.body;
+
+      // For testing, just echo back the updated stats
+      res.json({
+        stats,
+        lastActive: new Date(lastActive)
+      });
+    } catch (error) {
+      console.error('Error updating user progress:', error);
+      res.status(500).json({ 
+        success: false,
+        message: "Failed to update user progress",
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
 
   const httpServer = createServer(app);
   return httpServer;

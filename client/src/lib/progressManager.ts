@@ -5,6 +5,7 @@ class ProgressManager {
   private static instance: ProgressManager;
   private progress: UserProgress | null = null;
   private notificationCallback: ((notification: { type: string; title: string; description: string }) => void) | null = null;
+  private initialized = false;
 
   private constructor() {}
 
@@ -19,48 +20,58 @@ class ProgressManager {
     this.notificationCallback = callback;
   }
 
+  private getDefaultProgress(): UserProgress {
+    return {
+      userId: 'anonymous', // Default user ID for testing
+      stats: {
+        sitesAnalyzed: 0,
+        testsRun: 0,
+        issuesFixed: 0,
+        perfectScores: 0
+      },
+      achievements: [],
+      totalPoints: 0,
+      level: 1,
+      lastActive: new Date()
+    };
+  }
+
   async initialize(): Promise<void> {
+    if (this.initialized) {
+      return;
+    }
+
     try {
       const response = await apiRequest('GET', '/api/user/progress');
+
       if (!response.ok) {
         throw new Error(`Failed to fetch progress: ${response.status}`);
       }
 
       const data = await response.json();
 
-      // Ensure we have a valid data structure even if the response is incomplete
+      // Use default progress structure and merge with received data
       this.progress = {
+        ...this.getDefaultProgress(),
+        ...data,
         stats: {
-          sitesAnalyzed: data?.stats?.sitesAnalyzed ?? 0,
-          testsRun: data?.stats?.testsRun ?? 0,
-          issuesFixed: data?.stats?.issuesFixed ?? 0,
-          perfectScores: data?.stats?.perfectScores ?? 0
+          ...this.getDefaultProgress().stats,
+          ...(data?.stats || {})
         },
-        achievements: data?.achievements ?? [],
-        totalPoints: data?.totalPoints ?? 0,
-        level: data?.level ?? 1,
         lastActive: new Date(data?.lastActive || Date.now())
       };
+
+      this.initialized = true;
     } catch (error) {
       console.error('Failed to initialize progress:', error);
-      // Set default progress instead of throwing
-      this.progress = {
-        stats: {
-          sitesAnalyzed: 0,
-          testsRun: 0,
-          issuesFixed: 0,
-          perfectScores: 0
-        },
-        achievements: [],
-        totalPoints: 0,
-        level: 1,
-        lastActive: new Date()
-      };
+      // Set default progress on error
+      this.progress = this.getDefaultProgress();
+      this.initialized = true; // Mark as initialized even with default values
     }
   }
 
   async updateMetric(metric: keyof UserProgress['stats'], value: number = 1): Promise<void> {
-    if (!this.progress) {
+    if (!this.initialized) {
       await this.initialize();
     }
 
@@ -76,15 +87,18 @@ class ProgressManager {
       };
 
       const response = await apiRequest('PATCH', '/api/user/progress', update);
+
       if (!response.ok) {
         throw new Error('Failed to update progress');
       }
 
       const data = await response.json();
+
+      // Update local progress while maintaining the structure
       this.progress = {
         ...this.progress!,
-        stats: data.stats,
-        lastActive: new Date(data.lastActive)
+        stats: data.stats || this.progress!.stats,
+        lastActive: new Date(data.lastActive || Date.now())
       };
     } catch (error) {
       console.error('Failed to update progress:', error);
@@ -94,6 +108,10 @@ class ProgressManager {
 
   getProgress(): UserProgress | null {
     return this.progress;
+  }
+
+  isInitialized(): boolean {
+    return this.initialized;
   }
 }
 
