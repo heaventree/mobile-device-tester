@@ -494,10 +494,11 @@ ${cssFixResponse.mediaQueries?.map(mq => `
         const urlObj = new URL(urlToValidate);
 
         // Check for valid domain format (must have at least one dot and valid TLD)
-        if (!urlObj.hostname.includes('.')) {
+        const parts = urlObj.hostname.split('.');
+        if (parts.length < 2 || parts[parts.length - 1].length < 2) {
           return res.status(400).json({
-            error: 'Invalid URL format',
-            details: 'Please provide a valid domain (e.g., example.com)'
+            error: 'Invalid domain format',
+            details: 'Please provide a complete domain with TLD (e.g., example.com, website.org)'
           });
         }
 
@@ -505,7 +506,7 @@ ${cssFixResponse.mediaQueries?.map(mq => `
       } catch (error) {
         return res.status(400).json({
           error: 'Invalid URL format',
-          details: 'Please provide a valid URL (e.g., https://example.com)'
+          details: 'Please enter a valid website URL (e.g., https://example.com or www.example.com)'
         });
       }
 
@@ -520,7 +521,14 @@ ${cssFixResponse.mediaQueries?.map(mq => `
       } catch (error) {
         return res.status(400).json({
           error: 'Failed to fetch page',
-          details: `Could not connect to ${validatedUrl}. Please verify the URL is accessible.`
+          details: `Could not connect to ${validatedUrl}. Please verify the website is accessible.`
+        });
+      }
+
+      if (!response.ok) {
+        return res.status(400).json({
+          error: 'Failed to fetch page',
+          details: `Server returned status ${response.status}. Please verify the URL is correct and the website is accessible.`
         });
       }
 

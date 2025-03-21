@@ -36,7 +36,7 @@ export function PerformanceAnalyzer({ url, iframeRef }: PerformanceAnalyzerProps
 
   const analyzePerformance = async () => {
     if (!url) {
-      setError('Please enter a URL to analyze');
+      setError('Please enter a website URL to analyze');
       return;
     }
 
@@ -56,7 +56,8 @@ export function PerformanceAnalyzer({ url, iframeRef }: PerformanceAnalyzerProps
 
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.details || 'Failed to analyze performance');
+        // Simplify error message
+        throw new Error(data.details.split('.')[0]);
       }
 
       const { metrics: performanceMetrics, resources: resourceMetrics } = await response.json();
@@ -65,10 +66,10 @@ export function PerformanceAnalyzer({ url, iframeRef }: PerformanceAnalyzerProps
 
     } catch (error) {
       console.error('Performance analysis error:', error);
-      setError(error instanceof Error ? error.message : 'Failed to analyze performance');
+      setError(error instanceof Error ? error.message : 'Unable to analyze this website');
       toast({
         title: "Analysis Failed",
-        description: error instanceof Error ? error.message : 'Failed to analyze performance',
+        description: error instanceof Error ? error.message : 'Unable to analyze this website',
         variant: "destructive"
       });
     } finally {
@@ -120,7 +121,7 @@ export function PerformanceAnalyzer({ url, iframeRef }: PerformanceAnalyzerProps
       {error && (
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Analysis Failed</AlertTitle>
+          <AlertTitle>Unable to analyze website</AlertTitle>
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
