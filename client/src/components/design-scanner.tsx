@@ -79,9 +79,27 @@ export function DesignScanner({ url, iframeRef, onIssuesFound }: DesignScannerPr
         throw new Error(`${response.status}: ${await response.text()}`);
       }
 
-      const issues = await response.json();
-      setIssues(issues);
-      onIssuesFound(issues);
+      const designIssues = await response.json();
+
+      // Process the issues to ensure coordinates are relative to the iframe
+      const processedIssues = designIssues.map((issue: DesignIssue) => {
+        if (issue.bounds) {
+          const element = doc.querySelector(issue.element);
+          if (element) {
+            const rect = element.getBoundingClientRect();
+            issue.bounds = {
+              x: rect.left,
+              y: rect.top,
+              width: rect.width,
+              height: rect.height
+            };
+          }
+        }
+        return issue;
+      });
+
+      setIssues(processedIssues);
+      onIssuesFound(processedIssues);
 
     } catch (error) {
       console.error('Design scan error:', error);

@@ -118,7 +118,7 @@ export function DevicePreview({ url, device, screenSize }: DevicePreviewProps) {
     if (!showOverlay || !designIssues.length) return null;
 
     return (
-      <div className="absolute inset-0 pointer-events-none">
+      <div className="absolute inset-0 pointer-events-none" style={{ transform: `scale(${scale})` }}>
         {designIssues.map((issue, index) => {
           if (!issue.bounds) return null;
 
@@ -131,11 +131,13 @@ export function DevicePreview({ url, device, screenSize }: DevicePreviewProps) {
             border: '2px dashed rgba(239, 68, 68, 0.5)',
             backgroundColor: 'rgba(239, 68, 68, 0.1)',
             borderRadius: '4px',
+            zIndex: 9999,
+            transformOrigin: 'top left'
           };
 
           return (
             <div key={index} style={style}>
-              <div className="absolute -top-6 left-0 bg-red-500 text-white text-xs px-2 py-1 rounded">
+              <div className="absolute -top-6 left-0 bg-red-500 text-white text-xs px-2 py-1 rounded whitespace-nowrap">
                 {issue.title}
               </div>
             </div>
