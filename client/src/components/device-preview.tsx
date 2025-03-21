@@ -11,7 +11,8 @@ import { CSSFixPreview } from './css-fix-preview';
 import { DesignScanner } from './design-scanner';
 import type { DesignIssue } from './design-scanner';
 import { PerformanceAnalyzer } from './performance-analyzer';
-import { ColorAnalyzer } from './color-analyzer';
+// Temporarily disable color analyzer
+// import { ColorAnalyzer } from './color-analyzer';
 
 interface DevicePreviewProps {
   url: string;
@@ -268,14 +269,6 @@ export function DevicePreview({ url, device, screenSize }: DevicePreviewProps) {
 
       {/* Analysis Tools - Moved outside the preview frame */}
       <div className="space-y-4 mt-4">
-        {/* Color Analysis */}
-        <Card className="p-4">
-          <ColorAnalyzer
-            url={url}
-            iframeRef={iframeRef}
-          />
-        </Card>
-
         {/* AI Testing */}
         <Card className="p-4">
           <AITester
