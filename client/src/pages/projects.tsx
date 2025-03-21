@@ -1,7 +1,6 @@
 import React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { 
   Table, 
@@ -13,6 +12,7 @@ import {
 } from "@/components/ui/table";
 import { Loader2, AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AddSiteDialog } from "@/components/add-site-dialog";
 
 type Project = {
   id: string;
@@ -53,7 +53,7 @@ export default function Projects() {
     <div className="container mx-auto py-6 space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold">Projects</h1>
-        <Button>Add New Site</Button>
+        <AddSiteDialog />
       </div>
 
       <div className="flex items-center space-x-2">
