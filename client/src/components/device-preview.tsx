@@ -154,17 +154,19 @@ export function DevicePreview({ url, device, screenSize }: DevicePreviewProps) {
   if (!url || !device || !screenSize) {
     return (
       <div className="space-y-4">
+        <UserStatsDashboard />
         <Card className="w-full h-[600px] flex items-center justify-center text-slate-400">
           Enter a URL and select a device to preview
         </Card>
-        <UserStatsDashboard />
       </div>
     );
   }
 
   return (
     <div className="space-y-4">
-      <UserStatsDashboard />
+      <Card className="w-full p-6">
+        <UserStatsDashboard />
+      </Card>
       <Card className="w-full p-4 bg-slate-800/50 border-slate-700">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="text-sm font-medium text-slate-200">
