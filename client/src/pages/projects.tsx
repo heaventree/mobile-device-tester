@@ -3,18 +3,20 @@ import { useQuery } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
 } from "@/components/ui/table";
 import { Loader2, AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AddSiteDialog } from "@/components/add-site-dialog";
 import { ProjectDetailsDialog } from "@/components/project-details-dialog";
+import { Link } from "wouter";
+import { Icon } from "@/components/ui/icon";
 
 type Project = {
   id: string;
@@ -54,13 +56,25 @@ export default function Projects() {
   return (
     <div className="container mx-auto py-6 space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Projects</h1>
+        <div className="flex items-center gap-4">
+          <Button
+            variant="ghost"
+            size="icon"
+            asChild
+            className="text-slate-300 hover:text-white hover:bg-slate-700/50"
+          >
+            <Link href="/">
+              <Icon icon="ph:house" className="w-5 h-5" />
+            </Link>
+          </Button>
+          <h1 className="text-3xl font-bold">Projects</h1>
+        </div>
         <AddSiteDialog />
       </div>
 
       <div className="flex items-center space-x-2">
-        <Input 
-          placeholder="Search projects..." 
+        <Input
+          placeholder="Search projects..."
           className="max-w-sm"
         />
       </div>
@@ -84,9 +98,9 @@ export default function Projects() {
                   {project.name}
                 </TableCell>
                 <TableCell>
-                  <a 
-                    href={project.url} 
-                    target="_blank" 
+                  <a
+                    href={project.url}
+                    target="_blank"
                     rel="noopener noreferrer"
                     className="text-blue-500 hover:underline"
                   >
@@ -103,7 +117,7 @@ export default function Projects() {
                   </span>
                 </TableCell>
                 <TableCell>
-                  {project.lastScan 
+                  {project.lastScan
                     ? new Date(project.lastScan).toLocaleDateString()
                     : 'Never'
                   }
@@ -112,7 +126,7 @@ export default function Projects() {
                   {new Date(project.createdAt).toLocaleDateString()}
                 </TableCell>
                 <TableCell>
-                  <ProjectDetailsDialog 
+                  <ProjectDetailsDialog
                     project={project}
                     trigger={
                       <Button variant="outline" size="sm">

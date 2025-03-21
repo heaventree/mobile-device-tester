@@ -48,8 +48,8 @@ export default function Home() {
         setDevices(data);
 
         if (data.length > 0) {
-          const deviceToSelect = deviceParam ? 
-            data.find((d: Device) => d.id === deviceParam) : 
+          const deviceToSelect = deviceParam ?
+            data.find((d: Device) => d.id === deviceParam) :
             data[0];
 
           if (deviceToSelect) {
@@ -83,7 +83,7 @@ export default function Home() {
               <URLInput onValidURL={setUrl} />
             </div>
             <div className="flex-1 min-w-[350px]">
-              <DeviceSelector 
+              <DeviceSelector
                 onDeviceSelect={handleDeviceSelect}
                 selectedDeviceId={selectedDevice?.id}
               />
@@ -100,9 +100,9 @@ export default function Home() {
                 </Link>
               </Button>
               <Button
-                variant="ghost"
+                variant="outline"
                 asChild
-                className="text-slate-300 hover:text-white hover:bg-slate-700/50"
+                className="bg-purple-600/10 text-purple-100 hover:bg-purple-600/20 hover:text-white border-purple-500/20"
               >
                 <Link href="/projects">Projects</Link>
               </Button>
