@@ -1,0 +1,37 @@
+Uncaught SyntaxError: Unexpected token '<'Understand this errorAI
+4427507c-54d2-4df9-9554-2b168a39ba27-00-1qiucdsudp6pn.riker.replit.dev/:1 Access to font at 'https://heaventree.ie/wp-content/themes/uncode/library/fonts/uncode-icons.woff2' from origin 'https://4427507c-54d2-4df9-9554-2b168a39ba27-00-1qiucdsudp6pn.riker.replit.dev' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.Understand this errorAI
+uncode-icons.woff2:1 
+            
+            
+           Failed to load resource: net::ERR_FAILEDUnderstand this errorAI
+4427507c-54d2-4df9-9554-2b168a39ba27-00-1qiucdsudp6pn.riker.replit.dev/:1 Access to font at 'https://heaventree.ie/wp-content/themes/uncode/library/fonts/uncode-icons.woff' from origin 'https://4427507c-54d2-4df9-9554-2b168a39ba27-00-1qiucdsudp6pn.riker.replit.dev' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.Understand this errorAI
+uncode-icons.woff:1 
+            
+            
+           Failed to load resource: net::ERR_FAILEDUnderstand this errorAI
+4427507c-54d2-4df9-9554-2b168a39ba27-00-1qiucdsudp6pn.riker.replit.dev/:1 Access to font at 'https://heaventree.ie/wp-content/themes/uncode/library/fonts/uncode-icons.ttf' from origin 'https://4427507c-54d2-4df9-9554-2b168a39ba27-00-1qiucdsudp6pn.riker.replit.dev' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.Understand this errorAI
+uncode-icons.ttf:1 
+            
+            
+           Failed to load resource: net::ERR_FAILEDUnderstand this errorAI
+4427507c-54d2-4df9-9554-2b168a39ba27-00-1qiucdsudp6pn.riker.replit.dev/:1 Access to font at 'https://heaventree.ie/wp-content/plugins/revslider/sr6/assets/fonts/revicons/revicons.woff?5510888' from origin 'https://4427507c-54d2-4df9-9554-2b168a39ba27-00-1qiucdsudp6pn.riker.replit.dev' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.Understand this errorAI
+revicons.woff:1 
+            
+            
+           Failed to load resource: net::ERR_FAILEDUnderstand this errorAI
+4427507c-54d2-4df9-9554-2b168a39ba27-00-1qiucdsudp6pn.riker.replit.dev/:1 Access to font at 'https://heaventree.ie/wp-content/plugins/revslider/sr6/assets/fonts/revicons/revicons.ttf?5510888' from origin 'https://4427507c-54d2-4df9-9554-2b168a39ba27-00-1qiucdsudp6pn.riker.replit.dev' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.Understand this errorAI
+revicons.ttf:1 
+            
+            
+           Failed to load resource: net::ERR_FAILEDUnderstand this errorAI
+lockdown-install.js:1 Removing unpermitted intrinsics
+content_script.js:1 content script added
+4427507c-54d2-4df9-9…riker.replit.dev/:1 Uncaught (in promise) nullUnderstand this errorAI
+/api/analyze-design:1 
+            
+            
+           Failed to load resource: the server responded with a status of 413 (Request Entity Too Large)Understand this errorAI
+design-scanner.tsx:65 Design scan error: Error: 413: {"message":"request entity too large"}
+    at throwIfResNotOk (queryClient.ts:6:11)
+    at async apiRequest (queryClient.ts:22:3)
+    at async scanForDesignIssues (design-scanner.tsx:49:24)

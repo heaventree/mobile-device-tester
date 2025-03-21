@@ -42,19 +42,34 @@ export function DesignScanner({ url, iframeRef, onIssuesFound }: DesignScannerPr
       const doc = iframeRef.current.contentDocument;
       if (!doc) throw new Error('Cannot access iframe content');
 
-      const pageContent = doc.documentElement.outerHTML;
+      // Create a simplified version of the HTML for analysis
+      const mainContent = doc.body.cloneNode(true) as HTMLElement;
+
+      // Remove scripts and styles to reduce size
+      mainContent.querySelectorAll('script, style, link').forEach(el => el.remove());
+
+      // Remove large inline styles and data attributes
+      mainContent.querySelectorAll('*').forEach(el => {
+        Array.from(el.attributes).forEach(attr => {
+          if (attr.name.startsWith('data-') || attr.name === 'style') {
+            el.removeAttribute(attr.name);
+          }
+        });
+      });
+
+      const simplifiedHtml = mainContent.outerHTML;
       const viewportWidth = doc.documentElement.clientWidth;
       const viewportHeight = doc.documentElement.clientHeight;
 
       const response = await apiRequest('POST', '/api/analyze-design', {
         url,
-        html: pageContent,
+        html: simplifiedHtml,
         viewportWidth,
         viewportHeight
       });
 
       if (!response.ok) {
-        throw new Error('Failed to analyze design');
+        throw new Error(`${response.status}: ${await response.text()}`);
       }
 
       const issues = await response.json();
