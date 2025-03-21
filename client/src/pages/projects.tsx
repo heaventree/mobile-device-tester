@@ -15,12 +15,14 @@ import { Loader2, AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 type Project = {
-  id: number;
-  site_name: string;
-  site_url: string;
-  connection_status: 'connected' | 'disconnected' | 'error';
-  last_scan: string | null;
-  created_at: string;
+  id: string;
+  name: string;
+  url: string;
+  apiKey: string;
+  status: 'connected' | 'disconnected' | 'error';
+  lastScan?: Date;
+  createdAt: Date;
+  updatedAt: Date;
 };
 
 export default function Projects() {
@@ -77,35 +79,35 @@ export default function Projects() {
             {projects?.map((project) => (
               <TableRow key={project.id}>
                 <TableCell className="font-medium">
-                  {project.site_name}
+                  {project.name}
                 </TableCell>
                 <TableCell>
                   <a 
-                    href={project.site_url} 
+                    href={project.url} 
                     target="_blank" 
                     rel="noopener noreferrer"
                     className="text-blue-500 hover:underline"
                   >
-                    {project.site_url}
+                    {project.url}
                   </a>
                 </TableCell>
                 <TableCell>
                   <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                    ${project.connection_status === 'connected' ? 'bg-green-100 text-green-800' : ''}
-                    ${project.connection_status === 'disconnected' ? 'bg-red-100 text-red-800' : ''}
-                    ${project.connection_status === 'error' ? 'bg-yellow-100 text-yellow-800' : ''}
+                    ${project.status === 'connected' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' : ''}
+                    ${project.status === 'disconnected' ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300' : ''}
+                    ${project.status === 'error' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300' : ''}
                   `}>
-                    {project.connection_status}
+                    {project.status}
                   </span>
                 </TableCell>
                 <TableCell>
-                  {project.last_scan 
-                    ? new Date(project.last_scan).toLocaleDateString()
+                  {project.lastScan 
+                    ? new Date(project.lastScan).toLocaleDateString()
                     : 'Never'
                   }
                 </TableCell>
                 <TableCell>
-                  {new Date(project.created_at).toLocaleDateString()}
+                  {new Date(project.createdAt).toLocaleDateString()}
                 </TableCell>
                 <TableCell>
                   <Button variant="outline" size="sm">
@@ -114,7 +116,7 @@ export default function Projects() {
                 </TableCell>
               </TableRow>
             ))}
-            
+
             {!projects?.length && (
               <TableRow>
                 <TableCell colSpan={6} className="text-center py-8">
