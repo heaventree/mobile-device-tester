@@ -1,11 +1,11 @@
 import { apiRequest } from '@/lib/queryClient';
 import type { UserProgress, Achievement } from '@shared/schema';
 import { ACHIEVEMENTS, LEVEL_THRESHOLDS } from '@shared/constants';
-import { useToast } from '@/hooks/use-toast';
 
 class ProgressManager {
   private static instance: ProgressManager;
   private progress: UserProgress | null = null;
+  private notificationCallback: ((notification: { type: string; title: string; description: string }) => void) | null = null;
 
   private constructor() {}
 
@@ -14,6 +14,10 @@ class ProgressManager {
       this.instance = new ProgressManager();
     }
     return this.instance;
+  }
+
+  setNotificationCallback(callback: (notification: { type: string; title: string; description: string }) => void) {
+    this.notificationCallback = callback;
   }
 
   async initialize(): Promise<void> {
@@ -105,24 +109,25 @@ class ProgressManager {
   }
 
   private notifyAchievements(achievements: typeof ACHIEVEMENTS[number][]): void {
-    // Using toast notifications
     achievements.forEach(achievement => {
-      const toast = useToast();
-      toast.toast({
-        title: "Achievement Unlocked! 🏆",
-        description: `${achievement.name} - ${achievement.description}`,
-        variant: "success"
-      });
+      if (this.notificationCallback) {
+        this.notificationCallback({
+          type: "success",
+          title: "Achievement Unlocked! 🏆",
+          description: `${achievement.name} - ${achievement.description}`
+        });
+      }
     });
   }
 
   private notifyLevelUp(newLevel: number): void {
-    const toast = useToast();
-    toast.toast({
-      title: "Level Up! 🌟",
-      description: `Congratulations! You're now level ${newLevel}`,
-      variant: "success"
-    });
+    if (this.notificationCallback) {
+      this.notificationCallback({
+        type: "success",
+        title: "Level Up! 🌟",
+        description: `Congratulations! You're now level ${newLevel}`
+      });
+    }
   }
 
   getProgress(): UserProgress | null {

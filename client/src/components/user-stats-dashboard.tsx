@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { UserProgress } from '@shared/schema';
 import { ACHIEVEMENTS, LEVEL_THRESHOLDS, CATEGORY_ICONS } from '@shared/constants';
 import { progressManager } from '@/lib/progressManager';
+import { useToast } from '@/hooks/use-toast';
 
 const getLevelProgress = (points: number, level: number): number => {
   const currentThreshold = LEVEL_THRESHOLDS[level - 1] || 0;
@@ -15,14 +16,25 @@ const getLevelProgress = (points: number, level: number): number => {
 
 export function UserStatsDashboard() {
   const [progress, setProgress] = React.useState<UserProgress | null>(null);
+  const { toast } = useToast();
 
   React.useEffect(() => {
+    // Set up notification callback
+    progressManager.setNotificationCallback((notification) => {
+      toast({
+        title: notification.title,
+        description: notification.description,
+        variant: notification.type === "success" ? "default" : "destructive",
+      });
+    });
+
+    // Fetch initial progress
     const fetchProgress = async () => {
       await progressManager.initialize();
       setProgress(progressManager.getProgress());
     };
     fetchProgress();
-  }, []);
+  }, [toast]);
 
   if (!progress) {
     return (
