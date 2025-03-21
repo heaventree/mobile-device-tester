@@ -1,6 +1,5 @@
 import { apiRequest } from '@/lib/queryClient';
-import type { UserProgress, Achievement } from '@shared/schema';
-import { ACHIEVEMENTS, LEVEL_THRESHOLDS } from '@shared/constants';
+import type { UserProgress } from '@shared/schema';
 
 class ProgressManager {
   private static instance: ProgressManager;
@@ -23,110 +22,67 @@ class ProgressManager {
   async initialize(): Promise<void> {
     try {
       const response = await apiRequest('GET', '/api/user/progress');
-      if (response.ok) {
-        this.progress = await response.json();
-      } else {
-        console.error('Failed to initialize progress:', await response.text());
+
+      // Check if response is OK and has the correct content type
+      if (!response.ok) {
+        throw new Error(`Failed to fetch progress: ${response.status}`);
       }
+
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error('Invalid response format: expected JSON');
+      }
+
+      const data = await response.json();
+      this.progress = data;
     } catch (error) {
       console.error('Failed to initialize progress:', error);
+      // Set default progress instead of throwing
+      this.progress = {
+        stats: {},
+        achievements: [],
+        totalPoints: 0,
+        level: 1,
+        lastActive: new Date().toISOString()
+      };
     }
   }
 
   async updateMetric(metric: string, value: number = 1): Promise<void> {
     if (!this.progress) {
-      console.warn('Progress not initialized');
       await this.initialize();
-      if (!this.progress) {
-        throw new Error('Could not initialize progress');
-      }
     }
 
     try {
       // Update local stats
-      const stats = { ...this.progress.stats };
+      const stats = { ...this.progress!.stats };
       const updatedStat = (stats[metric as keyof typeof stats] || 0) + value;
       stats[metric as keyof typeof stats] = updatedStat;
-
-      // Check for new achievements
-      const newAchievements = ACHIEVEMENTS.filter(achievement => {
-        // Skip if already earned
-        if (this.progress?.achievements.includes(achievement.id)) return false;
-
-        // Check if criteria is met
-        if (achievement.criteria.metric === metric) {
-          return updatedStat >= achievement.criteria.target;
-        }
-        return false;
-      });
-
-      // Calculate new points
-      const additionalPoints = newAchievements.reduce((sum, a) => sum + a.points, 0);
-      const newTotalPoints = this.progress.totalPoints + additionalPoints;
-
-      // Calculate new level based on points thresholds
-      let newLevel = this.progress.level;
-      for (let i = this.progress.level; i < LEVEL_THRESHOLDS.length; i++) {
-        if (newTotalPoints >= LEVEL_THRESHOLDS[i]) {
-          newLevel = i + 1;
-        } else {
-          break;
-        }
-      }
 
       // Prepare update payload
       const update = {
         stats,
-        achievements: [...this.progress.achievements, ...newAchievements.map(a => a.id)],
-        totalPoints: newTotalPoints,
-        level: newLevel,
         lastActive: new Date().toISOString()
       };
 
       // Send update to server
       const response = await apiRequest('PATCH', '/api/user/progress', update);
+
       if (!response.ok) {
         throw new Error('Failed to update progress');
+      }
+
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error('Invalid response format: expected JSON');
       }
 
       const updatedProgress = await response.json();
       this.progress = updatedProgress;
 
-      // Notify about new achievements
-      if (newAchievements.length > 0) {
-        this.notifyAchievements(newAchievements);
-      }
-
-      // Notify about level up
-      if (newLevel > this.progress.level) {
-        this.notifyLevelUp(newLevel);
-      }
-
     } catch (error) {
       console.error('Failed to update progress:', error);
-      throw error;
-    }
-  }
-
-  private notifyAchievements(achievements: typeof ACHIEVEMENTS[number][]): void {
-    achievements.forEach(achievement => {
-      if (this.notificationCallback) {
-        this.notificationCallback({
-          type: "success",
-          title: "Achievement Unlocked! 🏆",
-          description: `${achievement.name} - ${achievement.description}`
-        });
-      }
-    });
-  }
-
-  private notifyLevelUp(newLevel: number): void {
-    if (this.notificationCallback) {
-      this.notificationCallback({
-        type: "success",
-        title: "Level Up! 🌟",
-        description: `Congratulations! You're now level ${newLevel}`
-      });
+      // Don't throw, just log the error
     }
   }
 
