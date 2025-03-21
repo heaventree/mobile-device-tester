@@ -239,6 +239,97 @@ Provide a brief, actionable analysis focusing on critical issues first.`
     }
   });
 
+  // New endpoint to analyze design issues
+  app.post("/api/analyze-design", async (req, res) => {
+    if (!process.env.OPENAI_API_KEY) {
+      return res.status(503).json({
+        success: false,
+        message: 'AI analysis is currently unavailable. OpenAI API key is not configured.'
+      });
+    }
+
+    try {
+      const { url, html, viewportWidth, viewportHeight } = req.body;
+
+      const openai = new OpenAI({
+        apiKey: process.env.OPENAI_API_KEY
+      });
+
+      const messages: ChatCompletionMessageParam[] = [
+        {
+          role: 'system',
+          content: `You are a design analysis expert. Analyze the provided HTML for design issues focusing on:
+1. Overlapping elements
+2. Elements extending beyond viewport
+3. Poor spacing and alignment
+4. Contrast and readability issues
+
+Format your response as an array of issues, each with:
+{
+  "type": "overlap" | "overflow" | "spacing" | "contrast",
+  "title": "Brief issue title",
+  "description": "Detailed description",
+  "element": "Affected element",
+  "bounds": {
+    "x": number,
+    "y": number,
+    "width": number,
+    "height": number
+  }
+}`
+        },
+        {
+          role: 'user',
+          content: `URL: ${url}
+Viewport: ${viewportWidth}x${viewportHeight}
+
+HTML Content:
+${html}
+
+Analyze this page for design issues. Focus on critical visual problems that affect usability and aesthetics.
+Return a JSON array of issues with precise coordinates for visual overlay.`
+        }
+      ];
+
+      const completion = await openai.chat.completions.create({
+        model: "gpt-4",
+        messages,
+        temperature: 0.7,
+        max_tokens: 1000,
+        response_format: { type: "json_object" }
+      });
+
+      const aiResponse = completion.choices[0].message.content;
+      const issues = JSON.parse(aiResponse || '{"issues": []}').issues;
+
+      res.json(issues);
+    } catch (error) {
+      console.error('Design analysis error:', error);
+
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid request format',
+          errors: error.errors
+        });
+      }
+
+      if (error instanceof OpenAI.APIError) {
+        return res.status(error.status || 500).json({
+          success: false,
+          message: 'OpenAI API error',
+          error: error.message
+        });
+      }
+
+      res.status(500).json({ 
+        success: false, 
+        message: 'Failed to analyze design',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
   // New endpoint to generate CSS fixes
   app.post("/api/generate-css-fixes", async (req, res) => {
     if (!process.env.OPENAI_API_KEY) {

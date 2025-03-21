@@ -8,6 +8,8 @@ import html2canvas from 'html2canvas';
 import { useToast } from '@/hooks/use-toast';
 import { AITester } from './ai-tester';
 import { CSSFixPreview } from './css-fix-preview';
+import { DesignScanner } from './design-scanner';
+import type { DesignIssue } from './design-scanner';
 
 interface DevicePreviewProps {
   url: string;
@@ -23,6 +25,8 @@ export function DevicePreview({ url, device, screenSize }: DevicePreviewProps) {
   const [cssPreviewEnabled, setCssPreviewEnabled] = React.useState(false);
   const [generatedCSS, setGeneratedCSS] = React.useState<string | null>(null);
   const [isLoadingPreview, setIsLoadingPreview] = React.useState(false);
+  const [designIssues, setDesignIssues] = React.useState<DesignIssue[]>([]);
+  const [showOverlay, setShowOverlay] = React.useState(true);
   const { toast } = useToast();
 
   const updateScale = React.useCallback(() => {
@@ -41,7 +45,6 @@ export function DevicePreview({ url, device, screenSize }: DevicePreviewProps) {
     return () => window.removeEventListener('resize', updateScale);
   }, [updateScale]);
 
-  // Update iframe content with CSS fixes if enabled
   const updateIframeContent = React.useCallback(async () => {
     if (!iframeRef.current || !url || isLoadingPreview) return;
 
@@ -72,7 +75,6 @@ export function DevicePreview({ url, device, screenSize }: DevicePreviewProps) {
     }
   }, [url, cssPreviewEnabled, generatedCSS, isLoadingPreview]);
 
-  // Only update preview on URL change or manual refresh
   React.useEffect(() => {
     updateIframeContent();
   }, [url]);
@@ -110,6 +112,37 @@ export function DevicePreview({ url, device, screenSize }: DevicePreviewProps) {
         variant: "destructive"
       });
     }
+  };
+
+  const renderOverlay = () => {
+    if (!showOverlay || !designIssues.length) return null;
+
+    return (
+      <div className="absolute inset-0 pointer-events-none">
+        {designIssues.map((issue, index) => {
+          if (!issue.bounds) return null;
+
+          const style = {
+            position: 'absolute' as const,
+            left: `${issue.bounds.x}px`,
+            top: `${issue.bounds.y}px`,
+            width: `${issue.bounds.width}px`,
+            height: `${issue.bounds.height}px`,
+            border: '2px dashed rgba(239, 68, 68, 0.5)',
+            backgroundColor: 'rgba(239, 68, 68, 0.1)',
+            borderRadius: '4px',
+          };
+
+          return (
+            <div key={index} style={style}>
+              <div className="absolute -top-6 left-0 bg-red-500 text-white text-xs px-2 py-1 rounded">
+                {issue.title}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
   };
 
   if (!url || !device || !screenSize) {
@@ -170,6 +203,24 @@ export function DevicePreview({ url, device, screenSize }: DevicePreviewProps) {
             <Camera className="h-4 w-4" />
             Capture
           </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowOverlay(!showOverlay)}
+            className="gap-2"
+          >
+            {showOverlay ? (
+              <>
+                <EyeOff className="h-4 w-4" />
+                Hide Issues
+              </>
+            ) : (
+              <>
+                <Eye className="h-4 w-4" />
+                Show Issues
+              </>
+            )}
+          </Button>
         </div>
       </div>
 
@@ -179,7 +230,7 @@ export function DevicePreview({ url, device, screenSize }: DevicePreviewProps) {
         style={{ height: '600px' }}
       >
         <motion.div
-          className="preview-container"
+          className="preview-container relative"
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.2 }}
@@ -201,6 +252,7 @@ export function DevicePreview({ url, device, screenSize }: DevicePreviewProps) {
             }}
             title="Website Preview"
           />
+          {renderOverlay()}
         </motion.div>
       </div>
 
@@ -210,18 +262,15 @@ export function DevicePreview({ url, device, screenSize }: DevicePreviewProps) {
           device={screenSize}
           cssEnabled={cssPreviewEnabled}
           cssContent={generatedCSS}
-          onAnalysisComplete={(newResults) => {
-            setResults(newResults);
-            const criticalErrors = newResults.filter(r => r.type === 'error');
-            if (criticalErrors.length > 0) {
-              toast({
-                title: "Critical Issues Found",
-                description: `Found ${criticalErrors.length} critical responsive design issues.`,
-                variant: "destructive"
-              });
-            }
-          }}
+          onAnalysisComplete={setResults}
         />
+        <div className="mt-4 pt-4 border-t border-slate-700">
+          <DesignScanner
+            url={url}
+            iframeRef={iframeRef}
+            onIssuesFound={setDesignIssues}
+          />
+        </div>
         <div className="mt-4 pt-4 border-t border-slate-700">
           <CSSFixPreview
             url={url}
