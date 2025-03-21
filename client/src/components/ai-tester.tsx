@@ -170,7 +170,7 @@ export function AITester({ url, device, cssEnabled, cssContent, onAnalysisComple
         <Button
           onClick={runAnalysis}
           disabled={isQuickAnalyzing || isAiAnalyzing}
-          className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700"
+          className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 min-w-[160px]"
         >
           {isQuickAnalyzing ? (
             <>
