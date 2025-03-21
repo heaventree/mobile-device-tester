@@ -12,10 +12,6 @@ interface ColorPair {
   contrastRatio: number;
   wcagAACompliant: boolean;
   wcagAAACompliant: boolean;
-  suggestedAlternatives?: {
-    foreground?: string;
-    background?: string;
-  };
 }
 
 interface ColorAnalysis {
@@ -29,7 +25,7 @@ interface ColorAnalyzerProps {
   iframeRef: React.RefObject<HTMLIFrameElement>;
 }
 
-export function ColorAnalyzer({ url, iframeRef }: ColorAnalyzerProps) {
+export function ColorAnalyzer({ url }: ColorAnalyzerProps) {
   const [isAnalyzing, setIsAnalyzing] = React.useState(false);
   const [analysis, setAnalysis] = React.useState<ColorAnalysis | null>(null);
   const [error, setError] = React.useState<string | null>(null);
@@ -37,7 +33,7 @@ export function ColorAnalyzer({ url, iframeRef }: ColorAnalyzerProps) {
 
   const analyzeColors = async () => {
     if (!url) {
-      setError('Please enter a URL to analyze');
+      setError('Please enter a website URL');
       return;
     }
 
@@ -46,54 +42,23 @@ export function ColorAnalyzer({ url, iframeRef }: ColorAnalyzerProps) {
     setAnalysis(null);
 
     try {
-      console.log('Initiating color analysis for:', url);
-      const response = await apiRequest('POST', '/api/analyze-colors', {
-        url,
-        viewport: {
-          width: iframeRef.current?.contentDocument?.documentElement.clientWidth || 0,
-          height: iframeRef.current?.contentDocument?.documentElement.clientHeight || 0
-        }
-      });
+      const response = await apiRequest('POST', '/api/analyze-colors', { url });
 
       if (!response.ok) {
         const data = await response.json();
-        console.error('Color analysis API error:', data);
-
-        // Handle rate limit error specifically
-        if (response.status === 429) {
-          throw new Error('Service is busy. Please try again in a few minutes');
-        }
-
-        throw new Error(data.details?.split('.')[0] || 'Unable to analyze colors');
+        throw new Error(data.details || 'Could not analyze colors');
       }
 
-      let colorAnalysis: ColorAnalysis;
-      try {
-        const rawResponse = await response.json();
-        console.log('Raw color analysis response:', rawResponse);
-
-        // Validate response structure
-        if (!rawResponse.dominantColors || !Array.isArray(rawResponse.dominantColors)) {
-          throw new Error('Invalid response format: missing dominant colors');
-        }
-        if (!rawResponse.colorPairs || !Array.isArray(rawResponse.colorPairs)) {
-          throw new Error('Invalid response format: missing color pairs');
-        }
-        colorAnalysis = rawResponse;
-      } catch (parseError) {
-        console.error('JSON parsing error:', parseError);
-        throw new Error('Failed to process color analysis results');
-      }
-
-      setAnalysis(colorAnalysis);
+      const result = await response.json();
+      setAnalysis(result);
 
     } catch (error) {
       console.error('Color analysis error:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unable to analyze colors';
-      setError(errorMessage);
+      const message = error instanceof Error ? error.message : 'Could not analyze colors';
+      setError(message);
       toast({
         title: "Analysis Failed",
-        description: errorMessage,
+        description: message,
         variant: "destructive"
       });
     } finally {
@@ -101,7 +66,7 @@ export function ColorAnalyzer({ url, iframeRef }: ColorAnalyzerProps) {
     }
   };
 
-  // Render empty state
+  // Empty state
   if (!analysis && !isAnalyzing) {
     return (
       <div className="space-y-4">
@@ -110,7 +75,7 @@ export function ColorAnalyzer({ url, iframeRef }: ColorAnalyzerProps) {
           <Button
             onClick={analyzeColors}
             disabled={isAnalyzing}
-            className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 min-w-[160px]"
+            className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700"
           >
             Analyze Colors
           </Button>
@@ -129,7 +94,7 @@ export function ColorAnalyzer({ url, iframeRef }: ColorAnalyzerProps) {
         <Button
           onClick={analyzeColors}
           disabled={isAnalyzing}
-          className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 min-w-[160px]"
+          className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700"
         >
           {isAnalyzing ? (
             <>
@@ -145,7 +110,7 @@ export function ColorAnalyzer({ url, iframeRef }: ColorAnalyzerProps) {
       {error && (
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Unable to analyze colors</AlertTitle>
+          <AlertTitle>Could not analyze colors</AlertTitle>
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
@@ -205,25 +170,6 @@ export function ColorAnalyzer({ url, iframeRef }: ColorAnalyzerProps) {
                       )}
                     </div>
                   </div>
-                  {!pair.wcagAACompliant && pair.suggestedAlternatives && (
-                    <div className="mt-2 text-sm text-slate-400">
-                      <p>Suggested alternatives:</p>
-                      <div className="flex items-center space-x-2 mt-1">
-                        {pair.suggestedAlternatives.background && (
-                          <div
-                            className="w-4 h-4 rounded"
-                            style={{ backgroundColor: pair.suggestedAlternatives.background }}
-                          />
-                        )}
-                        {pair.suggestedAlternatives.foreground && (
-                          <div
-                            className="w-4 h-4 rounded"
-                            style={{ backgroundColor: pair.suggestedAlternatives.foreground }}
-                          />
-                        )}
-                      </div>
-                    </div>
-                  )}
                 </div>
               ))}
             </div>

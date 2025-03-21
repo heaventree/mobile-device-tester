@@ -719,15 +719,16 @@ ${cssFixResponse.mediaQueries?.map(mq => `
       // Enhanced URL validation
       let validatedUrl: string;
       try {
+        // If no protocol is specified, prepend https://
         const urlToValidate = url.startsWith('http') ? url : `https://${url}`;
         const urlObj = new URL(urlToValidate);
 
-        // Check for valid domain format
+        // Check for valid domain format (must have at least one dot and valid TLD)
         const parts = urlObj.hostname.split('.');
         if (parts.length < 2 || parts[parts.length - 1].length < 2) {
           return res.status(400).json({
             error: 'Invalid domain format',
-            details: 'Please provide a complete domain with TLD (e.g., example.com, website.org)'
+            details: 'Please provide a complete domain (e.g., example.com)'
           });
         }
 
@@ -735,113 +736,74 @@ ${cssFixResponse.mediaQueries?.map(mq => `
       } catch (error) {
         return res.status(400).json({
           error: 'Invalid URL format',
-          details: 'Please enter a valid website URL (e.g., https://example.com or www.example.com)'
+          details: 'Please enter a website URL (e.g., example.com)'
         });
       }
 
       // Fetch the page
       let response;
       try {
-        response = await fetch(validatedUrl);
-      } catch (error) {
-        return res.status(400).json({
-          error: 'Failed to fetch page',
-          details: `Could not connect to ${validatedUrl}. Please verify the website is accessible.`
+        response = await fetch(validatedUrl, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (compatible; ColorAnalyzerBot/1.0)'
+          }
         });
-      }
 
-      if (!response.ok) {
-        return res.status(400).json({
-          error: 'Failed to fetch page',
-          details: `Server returned status ${response.status}. Please verify the URL is correct and the website is accessible.`
+        if (!response.ok) {
+          return res.status(400).json({
+            error: 'Failed to fetch page',
+            details: 'Could not access the website. Please verify it is available.'
+          });
+        }
+
+        const html = await response.text();
+
+        // Extract only color-related content
+        const colorPattern = /#[0-9a-f]{3,6}|rgb\([^)]+\)|rgba\([^)]+\)|hsl\([^)]+\)|hsla\([^)]+\)/gi;
+        const colorMatches = html.match(colorPattern) || [];
+
+        // Get only the first 50 unique colors to avoid token limits
+        const uniqueColors = [...new Set(colorMatches)].slice(0, 50);
+
+        const openai = new OpenAI({
+          apiKey: process.env.OPENAI_API_KEY
         });
-      }
 
-      const html = await response.text();
-
-      // Extract only the relevant CSS and color-related elements to reduce token size
-      const colorPattern = /#[0-9a-f]{3,6}|rgb\([^)]+\)|rgba\([^)]+\)|hsl\([^)]+\)|hsla\([^)]+\)/gi;
-      const stylePattern = /<style[^>]*>[\s\S]*?<\/style>|style="[^"]*"/gi;
-
-      const colorMatches = html.match(colorPattern) || [];
-      const styleMatches = html.match(stylePattern) || [];
-
-      const relevantContent = `
-        Colors found: ${colorMatches.join(', ')}
-        Styles: ${styleMatches.join('\n')}
-      `.slice(0, 10000); // Limit content size
-
-      // Use OpenAI to analyze colors
-      const openai = new OpenAI({
-        apiKey: process.env.OPENAI_API_KEY
-      });
-
-      console.log('Sending request to OpenAI for color analysis...');
-
-      try {
         const completion = await openai.chat.completions.create({
           model: "gpt-4",
           messages: [
             {
               role: 'system',
-              content: `You are a color accessibility expert. Analyze the provided CSS and color values to extract:
-1. Dominant colors used in the design
-2. Color combinations (foreground/background pairs)
-3. WCAG compliance issues
-4. Suggested improvements
-
+              content: `You are a color accessibility expert. Analyze these colors and suggest improvements.
 Return a JSON object with this structure:
 {
-  "dominantColors": ["#hex1", "#hex2", ...],
+  "dominantColors": ["#hex1", "#hex2"],
   "colorPairs": [
     {
       "foreground": "#hex",
-      "background": "#hex",
-      "contrastRatio": number,
-      "wcagAACompliant": boolean,
-      "wcagAAACompliant": boolean,
-      "suggestedAlternatives": {
-        "foreground": "#hex",
-        "background": "#hex"
-      }
+      "background": "#hex"
     }
   ],
-  "suggestions": ["suggestion1", "suggestion2", ...]
+  "suggestions": ["suggestion1", "suggestion2"]
 }`
             },
             {
               role: 'user',
-              content: `Analyze these colors and styles:\n${relevantContent}`
+              content: `Analyze these colors:\n${uniqueColors.join(', ')}`
             }
           ],
           temperature: 0.7,
-          max_tokens: 1000,
+          max_tokens: 500,
           response_format: { type: "json_object" }
         });
 
         const aiResponse = completion.choices[0].message.content;
-        console.log('Received OpenAI response:', aiResponse);
+        const aiAnalysis = JSON.parse(aiResponse || '{}');
 
-        let aiAnalysis;
-        try {
-          aiAnalysis = JSON.parse(aiResponse || '{}');
-          // Validate response structure
-          if (!aiAnalysis.dominantColors || !Array.isArray(aiAnalysis.dominantColors)) {
-            throw new Error('Invalid AI response: missing or invalid dominantColors array');
-          }
-          if (!aiAnalysis.colorPairs || !Array.isArray(aiAnalysis.colorPairs)) {
-            throw new Error('Invalid AI response: missing or invalid colorPairs array');
-          }
-        } catch (error) {
-          console.error('Failed to parse AI response:', error);
-          console.error('Raw AI response:', aiResponse);
-          throw new Error('Failed to process color analysis results');
-        }
-
-        // Enhance AI analysis with contrast calculations
+        // Calculate WCAG compliance
         const colorAnalysis: ColorAnalysis = {
-          dominantColors: aiAnalysis.dominantColors,
-          colorPairs: aiAnalysis.colorPairs.map((pair: any) => {
+          dominantColors: aiAnalysis.dominantColors || [],
+          colorPairs: (aiAnalysis.colorPairs || []).map((pair: any) => {
             const contrastRatio = calculateContrastRatio(pair.foreground, pair.background);
             return {
               ...pair,
@@ -850,7 +812,7 @@ Return a JSON object with this structure:
               wcagAAACompliant: contrastRatio >= 7
             };
           }),
-          suggestions: aiAnalysis.suggestions
+          suggestions: aiAnalysis.suggestions || []
         };
 
         res.json(colorAnalysis);
@@ -859,13 +821,13 @@ Return a JSON object with this structure:
         if (error instanceof OpenAI.APIError) {
           if (error.status === 429) {
             return res.status(429).json({
-              error: 'Service temporarily unavailable',
-              details: 'Too many requests. Please try again in a few minutes.'
+              error: 'Service busy',
+              details: 'Please try again in a few minutes'
             });
           }
           return res.status(error.status || 500).json({
             error: 'Analysis failed',
-            details: 'Failed to analyze colors. Please try again later.'
+            details: 'Could not analyze colors. Please try again.'
           });
         }
         throw error;
@@ -873,17 +835,9 @@ Return a JSON object with this structure:
 
     } catch (error) {
       console.error('Color analysis error:', error);
-
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({
-          error: 'Invalid request format',
-          details: 'Please provide a valid URL for analysis'
-        });
-      }
-
       res.status(500).json({
         error: 'Analysis failed',
-        details: error instanceof Error ? error.message : 'Unknown error occurred'
+        details: 'Could not complete the analysis'
       });
     }
   });
