@@ -241,9 +241,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: 'URL is required' });
       }
 
-      const response = await fetch(url);
-      const html = await response.text();
-      res.send(html);
+      // Validate URL format
+      try {
+        new URL(url);
+      } catch (error) {
+        return res.status(400).json({ 
+          error: 'Invalid URL format',
+          details: 'Please provide a valid URL with protocol (e.g., https://example.com)'
+        });
+      }
+
+      // Add timeout to fetch request
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 10000);
+
+      try {
+        const response = await fetch(url, { 
+          signal: controller.signal,
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (compatible; DeviceTester/1.0)'
+          }
+        });
+        clearTimeout(timeout);
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const html = await response.text();
+        res.send(html);
+      } catch (fetchError) {
+        if (fetchError.name === 'AbortError') {
+          return res.status(504).json({
+            error: 'Request timeout',
+            details: 'The request took too long to complete'
+          });
+        }
+        throw fetchError;
+      }
     } catch (error) {
       console.error('Error fetching page:', error);
       res.status(500).json({
@@ -916,7 +951,7 @@ Return a JSON object with this structure:
 
       // Test mode: use mock responses
       if (site_url === testWordPressConfig.siteUrl && api_key === testWordPressConfig.apiKey) {
-        console.log('Using test WordPress configuration for revert');
+                console.log('Using test WordPress configuration for revert');
         return res.json(mockWordPressResponses.cssRevert);
       }
 
@@ -944,6 +979,7 @@ Return a JSON object with this structure:
       });
     }
   });
+
 
 
   const httpServer = createServer(app);
