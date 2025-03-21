@@ -158,130 +158,146 @@ export function DevicePreview({ url, device, screenSize }: DevicePreviewProps) {
   }
 
   return (
-    <Card className="w-full overflow-hidden">
-      <div className="p-4 bg-slate-800/50 border-b border-slate-700 flex items-center justify-between">
-        <div className="text-sm font-medium text-slate-200">
-          {device.name} - {screenSize.width}x{screenSize.height}
-        </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleRefresh}
-            disabled={isLoadingPreview}
-            className="gap-2"
-          >
-            <RefreshCw className={`h-4 w-4 ${isLoadingPreview ? 'animate-spin' : ''}`} />
-            Refresh
-          </Button>
-
-          {generatedCSS && (
+    <div className="space-y-4">
+      {/* Header Controls */}
+      <Card className="w-full p-4 bg-slate-800/50 border-slate-700">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="text-sm font-medium text-slate-200">
+            {device.name} - {screenSize.width}x{screenSize.height}
+          </div>
+          <div className="flex flex-wrap gap-2">
             <Button
               variant="outline"
               size="sm"
-              onClick={handleToggleCSS}
+              onClick={handleRefresh}
               disabled={isLoadingPreview}
               className="gap-2"
             >
-              {isLoadingPreview ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : cssPreviewEnabled ? (
+              <RefreshCw className={`h-4 w-4 ${isLoadingPreview ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
+
+            {generatedCSS && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleToggleCSS}
+                disabled={isLoadingPreview}
+                className="gap-2"
+              >
+                {isLoadingPreview ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : cssPreviewEnabled ? (
+                  <>
+                    <EyeOff className="h-4 w-4" />
+                    Disable CSS Fixes
+                  </>
+                ) : (
+                  <>
+                    <Eye className="h-4 w-4" />
+                    Preview CSS Fixes
+                  </>
+                )}
+              </Button>
+            )}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={captureScreenshot}
+              className="gap-2"
+            >
+              <Camera className="h-4 w-4" />
+              Capture
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowOverlay(!showOverlay)}
+              className="gap-2"
+            >
+              {showOverlay ? (
                 <>
                   <EyeOff className="h-4 w-4" />
-                  Disable CSS Fixes
+                  Hide Issues
                 </>
               ) : (
                 <>
                   <Eye className="h-4 w-4" />
-                  Preview CSS Fixes
+                  Show Issues
                 </>
               )}
             </Button>
-          )}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={captureScreenshot}
-            className="gap-2"
-          >
-            <Camera className="h-4 w-4" />
-            Capture
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowOverlay(!showOverlay)}
-            className="gap-2"
-          >
-            {showOverlay ? (
-              <>
-                <EyeOff className="h-4 w-4" />
-                Hide Issues
-              </>
-            ) : (
-              <>
-                <Eye className="h-4 w-4" />
-                Show Issues
-              </>
-            )}
-          </Button>
+          </div>
         </div>
-      </div>
+      </Card>
 
-      <div
-        ref={containerRef}
-        className="relative w-full flex items-center justify-center bg-slate-900/50"
-        style={{ height: '600px' }}
-      >
-        <motion.div
-          className="preview-container relative"
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.2 }}
-          style={{
-            transform: `scale(${scale})`,
-            transformOrigin: 'center',
-            width: `${screenSize.width}px`,
-            height: `${screenSize.height}px`,
-          }}
+      {/* Device Preview */}
+      <Card className="w-full overflow-hidden">
+        <div
+          ref={containerRef}
+          className="relative w-full flex items-center justify-center bg-slate-900/50"
+          style={{ height: '600px' }}
         >
-          <iframe
-            ref={iframeRef}
+          <motion.div
+            className="preview-container relative"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.2 }}
             style={{
-              width: '100%',
-              height: '100%',
-              border: '1px solid rgba(148, 163, 184, 0.1)',
-              borderRadius: '4px',
-              backgroundColor: 'white'
+              transform: `scale(${scale})`,
+              transformOrigin: 'center',
+              width: `${screenSize.width}px`,
+              height: `${screenSize.height}px`,
             }}
-            title="Website Preview"
-          />
-          {renderOverlay()}
-        </motion.div>
-      </div>
+          >
+            <iframe
+              ref={iframeRef}
+              style={{
+                width: '100%',
+                height: '100%',
+                border: '1px solid rgba(148, 163, 184, 0.1)',
+                borderRadius: '4px',
+                backgroundColor: 'white'
+              }}
+              title="Website Preview"
+            />
+            {renderOverlay()}
+          </motion.div>
+        </div>
+      </Card>
 
-      <div className="p-4 border-t border-slate-700 space-y-4">
-        <AITester
-          url={url}
-          device={screenSize}
-          cssEnabled={cssPreviewEnabled}
-          cssContent={generatedCSS}
-          onAnalysisComplete={setResults}
-        />
-        <div className="mt-4 pt-4 border-t border-slate-700">
+      {/* Analysis Tools - Moved outside the preview frame */}
+      <div className="space-y-4 mt-4">
+        {/* Color Analysis */}
+        <Card className="p-4">
+          <ColorAnalyzer
+            url={url}
+            iframeRef={iframeRef}
+          />
+        </Card>
+
+        {/* AI Testing */}
+        <Card className="p-4">
+          <AITester
+            url={url}
+            device={screenSize}
+            cssEnabled={cssPreviewEnabled}
+            cssContent={generatedCSS}
+            onAnalysisComplete={setResults}
+          />
+        </Card>
+
+        {/* Design Scanner */}
+        <Card className="p-4">
           <DesignScanner
             url={url}
             iframeRef={iframeRef}
             onIssuesFound={setDesignIssues}
           />
-        </div>
-        <div className="mt-4 pt-4 border-t border-slate-700">
-          <ColorAnalyzer
-            url={url}
-            iframeRef={iframeRef}
-          />
-        </div>
-        <div className="mt-4 pt-4 border-t border-slate-700">
+        </Card>
+
+        {/* CSS Fix Preview */}
+        <Card className="p-4">
           <CSSFixPreview
             url={url}
             device={screenSize}
@@ -299,14 +315,16 @@ export function DevicePreview({ url, device, screenSize }: DevicePreviewProps) {
               updateIframeContent();
             }}
           />
-        </div>
-        <div className="mt-4 pt-4 border-t border-slate-700">
+        </Card>
+
+        {/* Performance Analysis */}
+        <Card className="p-4">
           <PerformanceAnalyzer
             url={url}
             iframeRef={iframeRef}
           />
-        </div>
+        </Card>
       </div>
-    </Card>
+    </div>
   );
 }

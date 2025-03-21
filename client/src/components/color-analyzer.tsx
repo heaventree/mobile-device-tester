@@ -1,7 +1,7 @@
 import React from 'react';
 import { Card } from '@/components/ui/card';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import { Loader2, AlertCircle, Palette, Check } from 'lucide-react';
+import { Loader2, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
@@ -33,7 +33,7 @@ export function ColorAnalyzer({ url }: ColorAnalyzerProps) {
 
   const analyzeColors = async () => {
     if (!url) {
-      setError('Please enter a website URL');
+      setError('Please enter a URL to analyze');
       return;
     }
 
@@ -181,7 +181,7 @@ export function ColorAnalyzer({ url }: ColorAnalyzerProps) {
               <ul className="space-y-2">
                 {analysis.suggestions.map((suggestion, index) => (
                   <li key={index} className="flex items-start space-x-2 text-sm text-slate-300">
-                    <Check className="h-4 w-4 mt-1 text-green-500" />
+                    <AlertCircle className="h-4 w-4 mt-1 text-amber-500" />
                     <span>{suggestion}</span>
                   </li>
                 ))}
