@@ -4,9 +4,10 @@ import { DeviceSelector } from '@/components/device-selector';
 import { DevicePreview } from '@/components/device-preview';
 import type { Device, ScreenSize } from '@shared/schema';
 import { Button } from '@/components/ui/button';
+import { Link } from 'wouter';
+import { Icon } from '@/components/ui/icon';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
-import { Icon } from '@/components/ui/icon';
 
 const QUICK_DEVICES = [
   { id: 'iphone-15-pro-max', label: 'iPhone 15 Pro Max', icon: 'ph:device-mobile-camera' },
@@ -29,34 +30,6 @@ export default function Home() {
   const handleDeviceSelect = (device: Device, screenSize: ScreenSize) => {
     setSelectedDevice(device);
     setSelectedScreenSize(screenSize);
-  };
-
-  const handleTest = async () => {
-    if (!url || !selectedDevice) return;
-
-    try {
-      await apiRequest('POST', '/api/validate-url', { url });
-
-      const params = new URLSearchParams(window.location.search);
-      const pageId = params.get('page_id');
-      if (pageId) {
-        await apiRequest('POST', '/wp/record-test', {
-          pageId: parseInt(pageId, 10),
-          deviceType: selectedDevice.type
-        });
-      }
-
-      toast({
-        title: "Testing started",
-        description: `Testing ${url} on ${selectedDevice.name}`,
-      });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to validate URL. Please check the URL is correct.",
-        variant: "destructive"
-      });
-    }
   };
 
   React.useEffect(() => {
@@ -115,14 +88,25 @@ export default function Home() {
                 selectedDeviceId={selectedDevice?.id}
               />
             </div>
-            <Button
-              onClick={handleTest}
-              disabled={!url || !selectedDevice}
-              className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-lg shadow-purple-500/20 min-w-[120px]"
-            >
-              <Icon icon="ph:play-circle" className="mr-2" />
-              Test
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                asChild
+                className="text-slate-300 hover:text-white hover:bg-slate-700/50"
+              >
+                <Link href="/">
+                  <Icon icon="ph:house" className="w-5 h-5" />
+                </Link>
+              </Button>
+              <Button
+                variant="ghost"
+                asChild
+                className="text-slate-300 hover:text-white hover:bg-slate-700/50"
+              >
+                <Link href="/projects">Projects</Link>
+              </Button>
+            </div>
           </div>
 
           {/* Quick Device Selection */}
