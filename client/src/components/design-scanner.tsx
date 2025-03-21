@@ -1,9 +1,10 @@
 import React from 'react';
 import { Card } from '@/components/ui/card';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import { Loader2, AlertCircle, Layout, Type, Move, Maximize } from 'lucide-react';
+import { Loader2, AlertCircle, Layout, Type, Move, Maximize, Copy, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { apiRequest } from '@/lib/queryClient';
+import { useToast } from '@/hooks/use-toast';
 
 interface DesignIssue {
   type: 'layout' | 'responsive' | 'spacing' | 'visual';
@@ -25,6 +26,68 @@ export function DesignScanner({ url, iframeRef, onIssuesFound }: DesignScannerPr
   const [isScanning, setIsScanning] = React.useState(false);
   const [issues, setIssues] = React.useState<DesignIssue[]>([]);
   const [error, setError] = React.useState<string | null>(null);
+  const [copyStates, setCopyStates] = React.useState<{ [key: number]: boolean }>({});
+  const { toast } = useToast();
+
+  const formatIssueForCopy = (issue: DesignIssue): string => {
+    return `Issue: ${issue.title}
+Type: ${issue.type}
+Impact: ${issue.impact}
+Description: ${issue.description}
+${issue.element ? `Element: ${issue.element}` : ''}
+${issue.currentCSS ? `Current CSS:\n${issue.currentCSS}` : ''}
+${issue.suggestedFix ? `Suggested Fix:\n${issue.suggestedFix}` : ''}
+`;
+  };
+
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch (error) {
+      console.error('Failed to copy:', error);
+      return false;
+    }
+  };
+
+  const handleCopyIssue = async (issue: DesignIssue, index: number) => {
+    const success = await copyToClipboard(formatIssueForCopy(issue));
+    if (success) {
+      setCopyStates({ ...copyStates, [index]: true });
+      setTimeout(() => {
+        setCopyStates(prev => ({ ...prev, [index]: false }));
+      }, 2000);
+      toast({
+        title: "Copied!",
+        description: "Design issue details copied to clipboard",
+      });
+    } else {
+      toast({
+        title: "Copy failed",
+        description: "Failed to copy to clipboard",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleCopyAll = async () => {
+    const allIssues = issues.map(formatIssueForCopy).join('\n---\n\n');
+    const success = await copyToClipboard(
+      `Design Scan Results for ${url}\nDate: ${new Date().toLocaleString()}\n\n${allIssues}`
+    );
+    if (success) {
+      toast({
+        title: "Copied All Issues!",
+        description: "All design scan results copied to clipboard",
+      });
+    } else {
+      toast({
+        title: "Copy failed",
+        description: "Failed to copy results to clipboard",
+        variant: "destructive"
+      });
+    }
+  };
 
   const scanForDesignIssues = async () => {
     if (!iframeRef.current) {
@@ -131,20 +194,33 @@ export function DesignScanner({ url, iframeRef, onIssuesFound }: DesignScannerPr
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-medium text-slate-200">Design Scanner</h3>
-        <Button
-          onClick={scanForDesignIssues}
-          disabled={isScanning}
-          className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700"
-        >
-          {isScanning ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Scanning...
-            </>
-          ) : (
-            'Scan Design'
+        <div className="flex gap-2">
+          {issues.length > 0 && (
+            <Button
+              onClick={handleCopyAll}
+              variant="outline"
+              size="sm"
+              className="gap-2"
+            >
+              <Copy className="h-4 w-4" />
+              Copy All
+            </Button>
           )}
-        </Button>
+          <Button
+            onClick={scanForDesignIssues}
+            disabled={isScanning}
+            className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700"
+          >
+            {isScanning ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Scanning...
+              </>
+            ) : (
+              'Scan Design'
+            )}
+          </Button>
+        </div>
       </div>
 
       {error && (
@@ -159,8 +235,20 @@ export function DesignScanner({ url, iframeRef, onIssuesFound }: DesignScannerPr
         {issues.map((issue, index) => (
           <Alert
             key={index}
-            className={`border ${getIssueClass(issue.impact)}`}
+            className={`border ${getIssueClass(issue.impact)} relative`}
           >
+            <Button
+              variant="ghost"
+              size="sm"
+              className="absolute right-2 top-2 h-8 w-8 p-0"
+              onClick={() => handleCopyIssue(issue, index)}
+            >
+              {copyStates[index] ? (
+                <Check className="h-4 w-4 text-green-500" />
+              ) : (
+                <Copy className="h-4 w-4" />
+              )}
+            </Button>
             {getIssueIcon(issue.type)}
             <AlertTitle className="flex items-center gap-2">
               {issue.title}
