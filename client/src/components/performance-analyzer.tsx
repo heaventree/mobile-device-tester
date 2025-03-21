@@ -35,49 +35,28 @@ export function PerformanceAnalyzer({ url, iframeRef }: PerformanceAnalyzerProps
   const { toast } = useToast();
 
   const analyzePerformance = async () => {
-    if (!iframeRef.current) {
-      setError('Cannot access preview content');
+    if (!url) {
+      setError('Please enter a URL to analyze');
       return;
     }
 
     setIsAnalyzing(true);
     setError(null);
+    setMetrics([]);
+    setResources([]);
 
     try {
-      // Wait for iframe to load
-      const getIframeDocument = (): Document | null => {
-        try {
-          return iframeRef.current?.contentDocument || null;
-        } catch (e) {
-          return null;
-        }
-      };
-
-      let doc = getIframeDocument();
-      let retries = 0;
-      const maxRetries = 10;
-
-      while (!doc?.body && retries < maxRetries) {
-        await new Promise(resolve => setTimeout(resolve, 500));
-        doc = getIframeDocument();
-        retries++;
-      }
-
-      if (!doc?.body) {
-        throw new Error('Failed to access iframe content after multiple attempts');
-      }
-
-      // Collect performance metrics
       const response = await apiRequest('POST', '/api/analyze-performance', {
         url,
         viewport: {
-          width: doc.documentElement.clientWidth,
-          height: doc.documentElement.clientHeight
+          width: iframeRef.current?.contentDocument?.documentElement.clientWidth || 0,
+          height: iframeRef.current?.contentDocument?.documentElement.clientHeight || 0
         }
       });
 
       if (!response.ok) {
-        throw new Error(`${response.status}: ${await response.text()}`);
+        const data = await response.json();
+        throw new Error(data.details || 'Failed to analyze performance');
       }
 
       const { metrics: performanceMetrics, resources: resourceMetrics } = await response.json();
@@ -87,6 +66,11 @@ export function PerformanceAnalyzer({ url, iframeRef }: PerformanceAnalyzerProps
     } catch (error) {
       console.error('Performance analysis error:', error);
       setError(error instanceof Error ? error.message : 'Failed to analyze performance');
+      toast({
+        title: "Analysis Failed",
+        description: error instanceof Error ? error.message : 'Failed to analyze performance',
+        variant: "destructive"
+      });
     } finally {
       setIsAnalyzing(false);
     }
