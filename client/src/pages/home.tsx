@@ -8,16 +8,57 @@ import { Link } from 'wouter';
 import { Icon } from '@/components/ui/icon';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
+import { ContextualTooltip } from '@/components/ui/contextual-tooltip'; // Fix import path
 
 const QUICK_DEVICES = [
-  { id: 'iphone-15-pro-max', label: 'iPhone 15 Pro Max', icon: 'ph:device-mobile-camera' },
-  { id: 'iphone-15', label: 'iPhone 15', icon: 'ph:device-mobile' },
-  { id: 'samsung-s24-ultra', label: 'S24 Ultra', icon: 'ph:device-mobile-speaker' },
-  { id: 'pixel-8-pro', label: 'Pixel 8 Pro', icon: 'ph:device-mobile-camera' },
-  { id: 'ipad-pro-13', label: 'iPad Pro', icon: 'ph:device-tablet' },
-  { id: 'samsung-tab-s9-ultra', label: 'Tab S9', icon: 'ph:device-tablet-speaker' },
-  { id: 'macbook-pro-16', label: 'MacBook Pro', icon: 'ph:laptop' },
-  { id: 'desktop-1440p', label: '1440p Monitor', icon: 'ph:monitor' }
+  { 
+    id: 'iphone-15-pro-max', 
+    label: 'iPhone 15 Pro Max', 
+    icon: 'ph:device-mobile-camera',
+    description: 'Test on iPhone 15 Pro Max (6.7" display, 2796×1290 pixels)'
+  },
+  { 
+    id: 'iphone-15', 
+    label: 'iPhone 15', 
+    icon: 'ph:device-mobile',
+    description: 'Test on iPhone 15 (6.1" display, 2556×1179 pixels)'
+  },
+  { 
+    id: 'samsung-s24-ultra', 
+    label: 'S24 Ultra', 
+    icon: 'ph:device-mobile-speaker',
+    description: 'Test on Samsung S24 Ultra (6.8" display, 3088×1440 pixels)'
+  },
+  { 
+    id: 'pixel-8-pro', 
+    label: 'Pixel 8 Pro', 
+    icon: 'ph:device-mobile-camera',
+    description: 'Test on Google Pixel 8 Pro (6.7" display, 2992×1344 pixels)'
+  },
+  { 
+    id: 'ipad-pro-13', 
+    label: 'iPad Pro', 
+    icon: 'ph:device-tablet',
+    description: 'Test on iPad Pro 12.9" (2732×2048 pixels, optimal for tablet layouts)'
+  },
+  { 
+    id: 'samsung-tab-s9-ultra', 
+    label: 'Tab S9', 
+    icon: 'ph:device-tablet-speaker',
+    description: 'Test on Samsung Tab S9 Ultra (14.6" display, 2960×1848 pixels)'
+  },
+  { 
+    id: 'macbook-pro-16', 
+    label: 'MacBook Pro', 
+    icon: 'ph:laptop',
+    description: 'Test on MacBook Pro 16" (3456×2234 pixels, desktop layout)'
+  },
+  { 
+    id: 'desktop-1440p', 
+    label: '1440p Monitor', 
+    icon: 'ph:monitor',
+    description: 'Test on 1440p Desktop Monitor (2560×1440 pixels, standard desktop)'
+  }
 ];
 
 export default function Home() {
@@ -112,21 +153,26 @@ export default function Home() {
           {/* Quick Device Selection */}
           <div className="mt-4 flex items-center gap-2 flex-wrap">
             {QUICK_DEVICES.map((device) => (
-              <Button
+              <ContextualTooltip
                 key={device.id}
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  const foundDevice = devices?.find(d => d.id === device.id);
-                  if (foundDevice) {
-                    handleDeviceSelect(foundDevice, foundDevice.screenSizes[0]);
-                  }
-                }}
-                className="text-slate-300 hover:text-white hover:bg-slate-700/50 transition-all"
+                content={device.description}
+                side="bottom"
               >
-                <Icon icon={device.icon} className="mr-2" size={16} />
-                {device.label}
-              </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    const foundDevice = devices?.find(d => d.id === device.id);
+                    if (foundDevice) {
+                      handleDeviceSelect(foundDevice, foundDevice.screenSizes[0]);
+                    }
+                  }}
+                  className="text-slate-300 hover:text-white hover:bg-slate-700/50 transition-all"
+                >
+                  <Icon icon={device.icon} className="mr-2" size={16} />
+                  {device.label}
+                </Button>
+              </ContextualTooltip>
             ))}
           </div>
         </div>
