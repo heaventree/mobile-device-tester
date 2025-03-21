@@ -11,6 +11,7 @@ import { CSSFixPreview } from './css-fix-preview';
 import { DesignScanner } from './design-scanner';
 import type { DesignIssue } from './design-scanner';
 import { PerformanceAnalyzer } from './performance-analyzer';
+import { UserStatsDashboard } from './user-stats-dashboard';
 // Temporarily disable color analyzer
 // import { ColorAnalyzer } from './color-analyzer';
 
@@ -152,15 +153,18 @@ export function DevicePreview({ url, device, screenSize }: DevicePreviewProps) {
 
   if (!url || !device || !screenSize) {
     return (
-      <Card className="w-full h-[600px] flex items-center justify-center text-slate-400">
-        Enter a URL and select a device to preview
-      </Card>
+      <div className="space-y-4">
+        <Card className="w-full h-[600px] flex items-center justify-center text-slate-400">
+          Enter a URL and select a device to preview
+        </Card>
+        <UserStatsDashboard />
+      </div>
     );
   }
 
   return (
     <div className="space-y-4">
-      {/* Header Controls */}
+      <UserStatsDashboard />
       <Card className="w-full p-4 bg-slate-800/50 border-slate-700">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="text-sm font-medium text-slate-200">
@@ -232,7 +236,6 @@ export function DevicePreview({ url, device, screenSize }: DevicePreviewProps) {
         </div>
       </Card>
 
-      {/* Device Preview */}
       <Card className="w-full overflow-hidden">
         <div
           ref={containerRef}
@@ -267,9 +270,7 @@ export function DevicePreview({ url, device, screenSize }: DevicePreviewProps) {
         </div>
       </Card>
 
-      {/* Analysis Tools - Moved outside the preview frame */}
       <div className="space-y-4 mt-4">
-        {/* AI Testing */}
         <Card className="p-4">
           <AITester
             url={url}
@@ -280,7 +281,6 @@ export function DevicePreview({ url, device, screenSize }: DevicePreviewProps) {
           />
         </Card>
 
-        {/* Design Scanner */}
         <Card className="p-4">
           <DesignScanner
             url={url}
@@ -289,7 +289,6 @@ export function DevicePreview({ url, device, screenSize }: DevicePreviewProps) {
           />
         </Card>
 
-        {/* CSS Fix Preview */}
         <Card className="p-4">
           <CSSFixPreview
             url={url}
@@ -310,7 +309,6 @@ export function DevicePreview({ url, device, screenSize }: DevicePreviewProps) {
           />
         </Card>
 
-        {/* Performance Analysis */}
         <Card className="p-4">
           <PerformanceAnalyzer
             url={url}
