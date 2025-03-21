@@ -1024,6 +1024,27 @@ Return a JSON object with this structure:
     }
   });
 
+  // Add new route for user progress
+  app.get("/api/user/progress", async (_req, res) => {
+    try {
+      // Return default initial progress
+      res.json({
+        stats: {
+          sitesAnalyzed: 0,
+          testsRun: 0,
+          issuesFixed: 0,
+          perfectScores: 0
+        },
+        achievements: [],
+        totalPoints: 0,
+        level: 1,
+        lastActive: new Date()
+      });
+    } catch (error) {
+      console.error('Error fetching user progress:', error);
+      res.status(500).json({ message: "Failed to fetch user progress" });
+    }
+  });
 
   const httpServer = createServer(app);
   return httpServer;
