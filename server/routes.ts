@@ -7,7 +7,90 @@ import OpenAI from 'openai';
 import type { ChatCompletionMessageParam } from 'openai/resources/chat/completions';
 import fetch from 'node-fetch';
 
-// Schema definitions
+// Add color analysis types and schemas
+interface ColorPair {
+  foreground: string;
+  background: string;
+  contrastRatio: number;
+  wcagAACompliant: boolean;
+  wcagAAACompliant: boolean;
+  suggestedAlternatives?: {
+    foreground?: string;
+    background?: string;
+  };
+}
+
+interface ColorAnalysis {
+  dominantColors: string[];
+  colorPairs: ColorPair[];
+  suggestions: string[];
+}
+
+const colorAnalysisSchema = z.object({
+  url: z.string().url(),
+  viewport: z.object({
+    width: z.number(),
+    height: z.number()
+  }).optional()
+});
+
+function hexToRgb(hex: string): { r: number; g: number; b: number } {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return result ? {
+    r: parseInt(result[1], 16),
+    g: parseInt(result[2], 16),
+    b: parseInt(result[3], 16)
+  } : { r: 0, g: 0, b: 0 };
+}
+
+function calculateContrastRatio(color1: string, color2: string): number {
+  const rgb1 = hexToRgb(color1);
+  const rgb2 = hexToRgb(color2);
+
+  const l1 = (0.2126 * Math.pow(rgb1.r / 255, 2.2)) +
+            (0.7152 * Math.pow(rgb1.g / 255, 2.2)) +
+            (0.0722 * Math.pow(rgb1.b / 255, 2.2));
+
+  const l2 = (0.2126 * Math.pow(rgb2.r / 255, 2.2)) +
+            (0.7152 * Math.pow(rgb2.g / 255, 2.2)) +
+            (0.0722 * Math.pow(rgb2.b / 255, 2.2));
+
+  const lighter = Math.max(l1, l2);
+  const darker = Math.min(l1, l2);
+
+  return (lighter + 0.05) / (darker + 0.05);
+}
+
+interface ResourceMetric {
+  type: 'script' | 'stylesheet' | 'image' | 'font' | 'other';
+  size: number;
+  transferSize: number;
+  loadTime: number;
+  url: string;
+}
+
+interface PerformanceMetric {
+  name: string;
+  value: number;
+  unit: string;
+  status: 'good' | 'warning' | 'poor';
+  recommendation?: string;
+}
+
+interface ResourceAnalysis {
+  metrics: PerformanceMetric[];
+  resources: ResourceMetric[];
+}
+
+// Schema for the performance analysis request
+const performanceAnalysisSchema = z.object({
+  url: z.string(),
+  viewport: z.object({
+    width: z.number(),
+    height: z.number()
+  }).optional()
+});
+
 const cssFixSchema = z.object({
   url: z.string().url(),
   deviceInfo: z.object({
@@ -42,35 +125,6 @@ const aiAnalysisSchema = z.object({
   }))
 });
 
-interface ResourceMetric {
-  type: 'script' | 'stylesheet' | 'image' | 'font' | 'other';
-  size: number;
-  transferSize: number;
-  loadTime: number;
-  url: string;
-}
-
-interface PerformanceMetric {
-  name: string;
-  value: number;
-  unit: string;
-  status: 'good' | 'warning' | 'poor';
-  recommendation?: string;
-}
-
-interface ResourceAnalysis {
-  metrics: PerformanceMetric[];
-  resources: ResourceMetric[];
-}
-
-// Schema for the performance analysis request
-const performanceAnalysisSchema = z.object({
-  url: z.string(),
-  viewport: z.object({
-    width: z.number(),
-    height: z.number()
-  }).optional()
-});
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Get projects list
@@ -645,6 +699,102 @@ ${cssFixResponse.mediaQueries?.map(mq => `
       console.error('Performance analysis error:', error);
       res.status(500).json({
         error: 'Failed to analyze performance',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  // Color Analysis endpoint
+  app.post("/api/analyze-colors", async (req, res) => {
+    try {
+      const { url } = colorAnalysisSchema.parse(req.body);
+
+      // Enhanced URL validation
+      let validatedUrl: string;
+      try {
+        const urlToValidate = url.startsWith('http') ? url : `https://${url}`;
+        const urlObj = new URL(urlToValidate);
+        validatedUrl = urlObj.toString();
+      } catch (error) {
+        return res.status(400).json({
+          error: 'Invalid URL format',
+          details: 'Please enter a valid website URL'
+        });
+      }
+
+      // Fetch the page
+      const response = await fetch(validatedUrl);
+      const html = await response.text();
+
+      // Use OpenAI to analyze colors and generate suggestions
+      const openai = new OpenAI({
+        apiKey: process.env.OPENAI_API_KEY
+      });
+
+      const messages: ChatCompletionMessageParam[] = [
+        {
+          role: 'system',
+          content: `You are a color accessibility expert. Analyze the HTML content and extract:
+1. Dominant colors used in the design
+2. Color combinations (foreground/background pairs)
+3. WCAG compliance issues
+4. Suggested improvements
+
+Return a JSON object with this structure:
+{
+  "dominantColors": ["#hex1", "#hex2", ...],
+  "colorPairs": [
+    {
+      "foreground": "#hex",
+      "background": "#hex",
+      "contrastRatio": number,
+      "wcagAACompliant": boolean,
+      "wcagAAACompliant": boolean,
+      "suggestedAlternatives": {
+        "foreground": "#hex",
+        "background": "#hex"
+      }
+    }
+  ],
+  "suggestions": ["suggestion1", "suggestion2", ...]
+}`
+        },
+        {
+          role: 'user',
+          content: `Analyze the colors in this HTML:\n${html}`
+        }
+      ];
+
+      const completion = await openai.chat.completions.create({
+        model: "gpt-4",
+        messages,
+        temperature: 0.7,
+        response_format: { type: "json_object" }
+      });
+
+      const aiAnalysis = JSON.parse(completion.choices[0].message.content || '{}');
+
+      // Validate and enhance AI analysis
+      const colorAnalysis: ColorAnalysis = {
+        dominantColors: aiAnalysis.dominantColors || [],
+        colorPairs: (aiAnalysis.colorPairs || []).map((pair: any) => {
+          const contrastRatio = calculateContrastRatio(pair.foreground, pair.background);
+          return {
+            ...pair,
+            contrastRatio,
+            wcagAACompliant: contrastRatio >= 4.5,
+            wcagAAACompliant: contrastRatio >= 7
+          };
+        }),
+        suggestions: aiAnalysis.suggestions || []
+      };
+
+      res.json(colorAnalysis);
+
+    } catch (error) {
+      console.error('Color analysis error:', error);
+      res.status(500).json({
+        error: 'Failed to analyze colors',
         details: error instanceof Error ? error.message : 'Unknown error'
       });
     }

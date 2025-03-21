@@ -11,6 +11,7 @@ import { CSSFixPreview } from './css-fix-preview';
 import { DesignScanner } from './design-scanner';
 import type { DesignIssue } from './design-scanner';
 import { PerformanceAnalyzer } from './performance-analyzer';
+import { ColorAnalyzer } from './color-analyzer';
 
 interface DevicePreviewProps {
   url: string;
@@ -272,6 +273,12 @@ export function DevicePreview({ url, device, screenSize }: DevicePreviewProps) {
             url={url}
             iframeRef={iframeRef}
             onIssuesFound={setDesignIssues}
+          />
+        </div>
+        <div className="mt-4 pt-4 border-t border-slate-700">
+          <ColorAnalyzer
+            url={url}
+            iframeRef={iframeRef}
           />
         </div>
         <div className="mt-4 pt-4 border-t border-slate-700">
