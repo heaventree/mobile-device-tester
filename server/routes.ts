@@ -259,7 +259,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const response = await fetch(url, { 
           signal: controller.signal,
           headers: {
-            'User-Agent': 'Mozilla/5.0 (compatible; DeviceTester/1.0)'
+            'User-Agent': 'Mozilla/5.0 (compatible; DeviceTester/1.0)',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.5'
           }
         });
         clearTimeout(timeout);
@@ -268,8 +270,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
 
+        const contentType = response.headers.get('content-type');
+        res.set('Content-Type', contentType || 'text/html');
+        res.set('Access-Control-Allow-Origin', '*');
+        res.set('Access-Control-Allow-Methods', 'GET, OPTIONS');
+        res.set('Access-Control-Allow-Headers', 'Content-Type');
+
         const html = await response.text();
-        res.send(html);
+
+        // Process HTML to make it work in an iframe
+        const processedHtml = html
+          .replace(/<base[^>]*>/g, '') // Remove base tags
+          .replace(/(href|src)=["']\/\//g, '$1="https://') // Fix protocol-relative URLs
+          .replace(/(href|src)=["']\//g, `$1="${url.replace(/\/[^/]*$/, '')}/`); // Fix relative URLs
+
+        res.send(processedHtml);
       } catch (fetchError) {
         if (fetchError.name === 'AbortError') {
           return res.status(504).json({
