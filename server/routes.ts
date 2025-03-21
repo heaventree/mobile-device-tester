@@ -6,6 +6,7 @@ import { z } from "zod";
 import OpenAI from 'openai';
 import type { ChatCompletionMessageParam } from 'openai/resources/chat/completions';
 import fetch from 'node-fetch';
+import { testWordPressConfig, mockWordPressResponses } from './test-data/wordpress-test';
 
 // Add new interface here
 interface WordPressCSSChange {
@@ -638,7 +639,7 @@ ${cssFixResponse.mediaQueries?.map(mq => `
         try {
           const absoluteUrl = new URL(resourceUrl, validatedUrl).toString();
 
-          const resourceResponse = await fetch(absoluteUrl, { 
+          const resourceResponse = await fetch(absoluteUrl, {
             method: 'HEAD',
             headers: {
               'User-Agent': 'Mozilla/5.0 (compatible; PerformanceBot/1.0)'
@@ -850,7 +851,8 @@ Return a JSON object with this structure:
     }
   });
 
-    // Add new WordPress routes here
+  // Add new WordPress routes here
+  // Add test mode handling to WordPress routes
   app.post("/api/wordpress/apply-css", async (req, res) => {
     try {
       const { page_id, css_content, device_type, site_url, api_key } = req.body;
@@ -861,6 +863,12 @@ Return a JSON object with this structure:
           success: false,
           message: "Missing required parameters"
         });
+      }
+
+      // Test mode: use mock responses
+      if (site_url === testWordPressConfig.siteUrl && api_key === testWordPressConfig.apiKey) {
+        console.log('Using test WordPress configuration');
+        return res.json(mockWordPressResponses.cssChange);
       }
 
       // Make request to WordPress site
@@ -904,6 +912,12 @@ Return a JSON object with this structure:
           success: false,
           message: "Missing required parameters"
         });
+      }
+
+      // Test mode: use mock responses
+      if (site_url === testWordPressConfig.siteUrl && api_key === testWordPressConfig.apiKey) {
+        console.log('Using test WordPress configuration for revert');
+        return res.json(mockWordPressResponses.cssRevert);
       }
 
       const wpResponse = await fetch(`${site_url}/wp-json/device-tester/v1/css/revert/${changeId}`, {

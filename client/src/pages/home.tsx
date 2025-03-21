@@ -89,6 +89,13 @@ export default function Home() {
       setUrl(urlParam);
     }
 
+    // Initialize WordPress config with test values
+    setWpConfig({
+      siteUrl: 'http://test-wordpress.local',
+      apiKey: 'test-api-key-12345',
+      pageId: 1
+    });
+
     const fetchData = async () => {
       try {
         const response = await fetch('/api/devices');
