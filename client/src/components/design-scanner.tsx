@@ -36,8 +36,28 @@ export function DesignScanner({ url, iframeRef, onIssuesFound }: DesignScannerPr
     setError(null);
 
     try {
-      const doc = iframeRef.current.contentDocument;
-      if (!doc) throw new Error('Cannot access iframe content');
+      // Wait for iframe content to be ready
+      const getIframeDocument = (): Document | null => {
+        try {
+          return iframeRef.current?.contentDocument || null;
+        } catch (e) {
+          return null;
+        }
+      };
+
+      let doc = getIframeDocument();
+      let retries = 0;
+      const maxRetries = 10;
+
+      while (!doc?.body && retries < maxRetries) {
+        await new Promise(resolve => setTimeout(resolve, 500));
+        doc = getIframeDocument();
+        retries++;
+      }
+
+      if (!doc?.body) {
+        throw new Error('Failed to access iframe content after multiple attempts');
+      }
 
       // Create a simplified version of the HTML for analysis
       const mainContent = doc.body.cloneNode(true) as HTMLElement;
