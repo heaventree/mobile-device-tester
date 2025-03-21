@@ -17,15 +17,20 @@ class DeviceTester {
     private $settings_errors = [];
     private $db_version = '1.0';
     private $table_name;
+    private $projects_table_name;
+    private $api_key_option = 'device_tester_api_key';
+    private $connection_status_option = 'device_tester_connection_status';
 
     public function __construct() {
         global $wpdb;
         $this->table_name = $wpdb->prefix . 'device_tester_stats';
+        $this->projects_table_name = $wpdb->prefix . 'device_tester_projects';
         $this->plugin_url = trim(get_option('device_tester_url'), '/');
 
         // Initialize plugin
         register_activation_hook(__FILE__, array($this, 'install'));
         add_action('admin_init', array($this, 'maybe_upgrade'));
+        add_action('rest_api_init', array($this, 'register_rest_routes'));
 
         // Add admin menu
         add_action('admin_menu', array($this, 'add_admin_menu'));
@@ -58,6 +63,7 @@ class DeviceTester {
 
         $charset_collate = $wpdb->get_charset_collate();
 
+        // Create stats table
         $sql = "CREATE TABLE IF NOT EXISTS $this->table_name (
             id mediumint(9) NOT NULL AUTO_INCREMENT,
             page_id bigint(20) NOT NULL,
@@ -67,13 +73,234 @@ class DeviceTester {
             KEY page_id (page_id)
         ) $charset_collate;";
 
+        // Create projects table
+        $sql .= "CREATE TABLE IF NOT EXISTS $this->projects_table_name (
+            id mediumint(9) NOT NULL AUTO_INCREMENT,
+            site_name varchar(255) NOT NULL,
+            site_url varchar(255) NOT NULL,
+            api_key varchar(64) NOT NULL,
+            connection_status varchar(20) DEFAULT 'disconnected',
+            last_scan datetime DEFAULT NULL,
+            created_at datetime DEFAULT CURRENT_TIMESTAMP,
+            updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY  (id),
+            UNIQUE KEY api_key (api_key)
+        ) $charset_collate;";
+
         require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
         dbDelta($sql);
 
         add_option('device_tester_db_version', $this->db_version);
 
-        // Add default excluded post types
-        add_option('device_tester_excluded_types', array('attachment', 'revision', 'nav_menu_item'));
+        // Generate initial API key if not exists
+        if (!get_option($this->api_key_option)) {
+            $this->generate_api_key();
+        }
+    }
+
+    public function add_admin_menu() {
+        // Main menu
+        add_menu_page(
+            'Device Tester',
+            'Device Tester',
+            'manage_options',
+            'device-tester',
+            array($this, 'render_admin_page'),
+            'dashicons-smartphone'
+        );
+
+        // Projects submenu
+        add_submenu_page(
+            'device-tester',
+            'Projects',
+            'Projects',
+            'manage_options',
+            'device-tester-projects',
+            array($this, 'render_projects_page')
+        );
+
+        // Settings submenu
+        add_submenu_page(
+            'device-tester',
+            'Settings',
+            'Settings',
+            'manage_options',
+            'device-tester-settings',
+            array($this, 'render_settings_page')
+        );
+    }
+
+    public function render_projects_page() {
+        global $wpdb;
+
+        // Get all projects/connected sites
+        $projects = $wpdb->get_results("
+            SELECT * FROM $this->projects_table_name 
+            ORDER BY created_at DESC
+        ");
+
+        ?>
+        <div class="wrap">
+            <h1>Device Tester Projects</h1>
+
+            <div class="card">
+                <h2>Connected Sites</h2>
+
+                <?php if (empty($projects)): ?>
+                    <p>No sites connected yet. Use your API key to connect sites to the Device Tester platform.</p>
+                <?php else: ?>
+                    <table class="wp-list-table widefat fixed striped">
+                        <thead>
+                            <tr>
+                                <th>Site Name</th>
+                                <th>URL</th>
+                                <th>Status</th>
+                                <th>Last Scan</th>
+                                <th>Connected Since</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($projects as $project): ?>
+                                <tr>
+                                    <td><?php echo esc_html($project->site_name); ?></td>
+                                    <td>
+                                        <a href="<?php echo esc_url($project->site_url); ?>" target="_blank">
+                                            <?php echo esc_html($project->site_url); ?>
+                                        </a>
+                                    </td>
+                                    <td>
+                                        <span class="status-<?php echo esc_attr($project->connection_status); ?>">
+                                            <?php echo esc_html(ucfirst($project->connection_status)); ?>
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <?php 
+                                        echo $project->last_scan 
+                                            ? esc_html(human_time_diff(strtotime($project->last_scan))) . ' ago'
+                                            : 'Never';
+                                        ?>
+                                    </td>
+                                    <td>
+                                        <?php echo esc_html(human_time_diff(strtotime($project->created_at))); ?> ago
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                <?php endif; ?>
+            </div>
+
+            <style>
+                .status-connected {
+                    color: #46b450;
+                }
+                .status-disconnected {
+                    color: #dc3232;
+                }
+                .status-error {
+                    color: #ffb900;
+                }
+            </style>
+        </div>
+        <?php
+    }
+
+    private function generate_api_key() {
+        $api_key = wp_generate_password(32, false);
+        update_option($this->api_key_option, $api_key);
+        return $api_key;
+    }
+
+    public function register_rest_routes() {
+        register_rest_route('device-tester/v1', '/site-info', array(
+            'methods' => 'GET',
+            'callback' => array($this, 'get_site_info'),
+            'permission_callback' => array($this, 'verify_api_key')
+        ));
+
+        register_rest_route('device-tester/v1', '/update-status', array(
+            'methods' => 'POST',
+            'callback' => array($this, 'update_connection_status'),
+            'permission_callback' => array($this, 'verify_api_key')
+        ));
+
+        register_rest_route('device-tester/v1', '/register-site', array(
+            'methods' => 'POST',
+            'callback' => array($this, 'register_site'),
+            'permission_callback' => array($this, 'verify_api_key')
+        ));
+    }
+
+    public function register_site($request) {
+        global $wpdb;
+
+        $site_name = sanitize_text_field($request->get_param('site_name'));
+        $site_url = esc_url_raw($request->get_param('site_url'));
+        $api_key = $request->get_header('X-Device-Tester-Key');
+
+        // Check if site already exists
+        $existing = $wpdb->get_var($wpdb->prepare(
+            "SELECT id FROM $this->projects_table_name WHERE api_key = %s",
+            $api_key
+        ));
+
+        if ($existing) {
+            // Update existing site
+            $wpdb->update(
+                $this->projects_table_name,
+                array(
+                    'site_name' => $site_name,
+                    'site_url' => $site_url,
+                    'connection_status' => 'connected',
+                    'updated_at' => current_time('mysql')
+                ),
+                array('api_key' => $api_key)
+            );
+        } else {
+            // Insert new site
+            $wpdb->insert(
+                $this->projects_table_name,
+                array(
+                    'site_name' => $site_name,
+                    'site_url' => $site_url,
+                    'api_key' => $api_key,
+                    'connection_status' => 'connected'
+                )
+            );
+        }
+
+        return array(
+            'status' => 'success',
+            'message' => 'Site registered successfully'
+        );
+    }
+
+
+    public function verify_api_key($request) {
+        $auth_header = $request->get_header('X-Device-Tester-Key');
+        if (!$auth_header) {
+            return false;
+        }
+        return $auth_header === get_option($this->api_key_option);
+    }
+
+    public function get_site_info($request) {
+        return array(
+            'name' => get_bloginfo('name'),
+            'url' => get_site_url(),
+            'version' => get_bloginfo('version'),
+            'status' => get_option($this->connection_status_option, 'disconnected')
+        );
+    }
+
+    public function update_connection_status($request) {
+        $status = sanitize_text_field($request->get_param('status'));
+        if (!in_array($status, array('connected', 'disconnected', 'error'))) {
+            return new WP_Error('invalid_status', 'Invalid status provided');
+        }
+
+        update_option($this->connection_status_option, $status);
+        return array('status' => 'success');
     }
 
     public function maybe_upgrade() {
@@ -205,48 +432,16 @@ class DeviceTester {
                 display: block;
                 margin: 5px 0;
             }
+            .card {
+                max-width: 800px;
+                background: white;
+                padding: 20px;
+                margin-top: 20px;
+                border: 1px solid #ccd0d4;
+                box-shadow: 0 1px 1px rgba(0,0,0,.04);
+            }
         </style>
         <?php
-    }
-
-    public function add_admin_menu() {
-        add_options_page(
-            'Device Tester Settings',
-            'Device Tester',
-            'manage_options',
-            'device-tester',
-            array($this, 'render_settings_page')
-        );
-    }
-
-    public function register_settings() {
-        register_setting('device_tester_settings', 'device_tester_url', array(
-            'sanitize_callback' => array($this, 'validate_tester_url')
-        ));
-        register_setting('device_tester_settings', 'device_tester_excluded_types');
-    }
-
-    public function validate_tester_url($url) {
-        if (empty($url)) {
-            add_settings_error(
-                'device_tester_url',
-                'empty_url',
-                'Device Tester URL cannot be empty'
-            );
-            return '';
-        }
-
-        $url = esc_url_raw($url);
-        if (!filter_var($url, FILTER_VALIDATE_URL)) {
-            add_settings_error(
-                'device_tester_url',
-                'invalid_url',
-                'Please enter a valid URL'
-            );
-            return '';
-        }
-
-        return $url;
     }
 
     public function add_admin_bar_button($admin_bar) {
@@ -442,6 +637,74 @@ class DeviceTester {
             </div>
         </div>
         <?php
+    }
+
+    public function render_admin_page() {
+        $api_key = get_option($this->api_key_option);
+        $connection_status = get_option($this->connection_status_option, 'disconnected');
+        ?>
+        <div class="wrap">
+            <h1>Device Tester Settings</h1>
+
+            <div class="card">
+                <h2>Connection Status</h2>
+                <p>Current Status: <strong><?php echo esc_html(ucfirst($connection_status)); ?></strong></p>
+
+                <h3>API Key</h3>
+                <p>Use this API key to connect your site to the Device Tester platform:</p>
+                <input type="text" 
+                       readonly 
+                       value="<?php echo esc_attr($api_key); ?>" 
+                       class="regular-text"
+                       style="background: #f0f0f1;"
+                />
+
+                <p>
+                    <button type="button" 
+                            class="button button-secondary" 
+                            onclick="if(confirm('Are you sure you want to generate a new API key? This will invalidate the current key.')) { 
+                                document.getElementById('regenerate_key').submit(); 
+                            }">
+                        Regenerate API Key
+                    </button>
+                </p>
+
+                <form id="regenerate_key" method="post" action="options.php">
+                    <?php settings_fields('device_tester_settings'); ?>
+                    <input type="hidden" name="<?php echo esc_attr($this->api_key_option); ?>" value="<?php echo esc_attr($this->generate_api_key()); ?>" />
+                </form>
+            </div>
+        </div>
+        <?php
+    }
+
+    public function validate_tester_url($url) {
+        if (empty($url)) {
+            add_settings_error(
+                'device_tester_url',
+                'empty_url',
+                'Device Tester URL cannot be empty'
+            );
+            return '';
+        }
+
+        $url = esc_url_raw($url);
+        if (!filter_var($url, FILTER_VALIDATE_URL)) {
+            add_settings_error(
+                'device_tester_url',
+                'invalid_url',
+                'Please enter a valid URL'
+            );
+            return '';
+        }
+
+        return $url;
+    }
+    public function register_settings() {
+        register_setting('device_tester_settings', 'device_tester_url', array($this, 'validate_tester_url'));
+        register_setting('device_tester_settings', $this->api_key_option);
+        register_setting('device_tester_settings', $this->connection_status_option);
+        register_setting('device_tester_settings', 'device_tester_excluded_types');
     }
 }
 

@@ -5,11 +5,13 @@ import { Toaster } from "@/components/ui/toaster";
 import { ThemeToggle } from "@/components/theme-toggle";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
+import Projects from "@/pages/projects";
 
 function Router() {
   return (
     <Switch>
       <Route path="/" component={Home}/>
+      <Route path="/projects" component={Projects}/>
       <Route component={NotFound} />
     </Switch>
   );
