@@ -330,7 +330,7 @@ Provide a brief, actionable analysis focusing on critical issues first.`
         model: "gpt-4",
         messages,
         temperature: 0.7,
-        max_tokens: 500 // Reduced from 1000 for faster response
+        max_tokens: 500 
       });
 
       const aiAnalysis = completion.choices[0].message.content;
@@ -423,7 +423,6 @@ Analyze for styling issues. Return JSON only.`
         messages,
         temperature: 0.7,
         max_tokens: 1000,
-        response_format: { type: "json_object" }
       });
 
       const aiResponse = completion.choices[0].message.content;
@@ -481,7 +480,7 @@ Analyze for styling issues. Return JSON only.`
 Generate CSS fixes that will be applied through a separate stylesheet to avoid modifying the original site.
 Focus on non-destructive, reversible changes.
 
-Return a valid JSON object ONLY with this exact structure:
+You must respond with ONLY a valid JSON object using this exact structure:
 {
   "fixes": [
     {
@@ -502,7 +501,8 @@ Return a valid JSON object ONLY with this exact structure:
       ]
     }
   ]
-}`
+}
+Do not include any text before or after the JSON.`
         },
         {
           role: 'user',
@@ -514,7 +514,7 @@ Device Type: ${data.deviceInfo.type}
 Issues to fix:
 ${data.issues.map(issue => `- ${issue.type}: ${issue.description}`).join('\n')}
 
-Generate CSS fixes that will resolve these issues. Ensure the response is valid JSON matching the specified format.`
+Generate CSS fixes that will resolve these issues. Return a valid JSON object matching the format specified above.`
         }
       ];
 
@@ -523,8 +523,7 @@ Generate CSS fixes that will resolve these issues. Ensure the response is valid 
         model: "gpt-4",
         messages,
         temperature: 0.7,
-        max_tokens: 1000,
-        response_format: { type: "json_object" }
+        max_tokens: 1000
       });
 
       const aiResponse = completion.choices[0].message.content;
@@ -837,7 +836,6 @@ Return a JSON object with this structure:
           ],
           temperature: 0.7,
           max_tokens: 500,
-          response_format: { type: "json_object" }
         });
 
         const aiResponse = completion.choices[0].message.content;
@@ -941,7 +939,7 @@ Return a JSON object with this structure:
       console.error('Error applying WordPress CSS:', error);
       res.status(500).json({
         success: false,
-                message: error instanceof Error ? error.message : 'Failed to apply CSS changes'
+        message: error instanceof Error ? error.message : 'Failed to apply CSS changes'
       });
     }
   });
