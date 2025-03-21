@@ -58,6 +58,12 @@ export function ColorAnalyzer({ url, iframeRef }: ColorAnalyzerProps) {
       if (!response.ok) {
         const data = await response.json();
         console.error('Color analysis API error:', data);
+
+        // Handle rate limit error specifically
+        if (response.status === 429) {
+          throw new Error('Service is busy. Please try again in a few minutes');
+        }
+
         throw new Error(data.details?.split('.')[0] || 'Unable to analyze colors');
       }
 
@@ -76,7 +82,7 @@ export function ColorAnalyzer({ url, iframeRef }: ColorAnalyzerProps) {
         colorAnalysis = rawResponse;
       } catch (parseError) {
         console.error('JSON parsing error:', parseError);
-        throw new Error('Failed to parse color analysis results');
+        throw new Error('Failed to process color analysis results');
       }
 
       setAnalysis(colorAnalysis);

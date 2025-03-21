@@ -722,7 +722,7 @@ ${cssFixResponse.mediaQueries?.map(mq => `
         const urlToValidate = url.startsWith('http') ? url : `https://${url}`;
         const urlObj = new URL(urlToValidate);
 
-        // Check for valid domain format (must have at least one dot and valid TLD)
+        // Check for valid domain format
         const parts = urlObj.hostname.split('.');
         if (parts.length < 2 || parts[parts.length - 1].length < 2) {
           return res.status(400).json({
@@ -759,15 +759,32 @@ ${cssFixResponse.mediaQueries?.map(mq => `
 
       const html = await response.text();
 
-      // Use OpenAI to analyze colors and generate suggestions
+      // Extract only the relevant CSS and color-related elements to reduce token size
+      const colorPattern = /#[0-9a-f]{3,6}|rgb\([^)]+\)|rgba\([^)]+\)|hsl\([^)]+\)|hsla\([^)]+\)/gi;
+      const stylePattern = /<style[^>]*>[\s\S]*?<\/style>|style="[^"]*"/gi;
+
+      const colorMatches = html.match(colorPattern) || [];
+      const styleMatches = html.match(stylePattern) || [];
+
+      const relevantContent = `
+        Colors found: ${colorMatches.join(', ')}
+        Styles: ${styleMatches.join('\n')}
+      `.slice(0, 10000); // Limit content size
+
+      // Use OpenAI to analyze colors
       const openai = new OpenAI({
         apiKey: process.env.OPENAI_API_KEY
       });
 
-      const messages: ChatCompletionMessageParam[] = [
-        {
-          role: 'system',
-          content: `You are a color accessibility expert. Analyze the HTML content and extract:
+      console.log('Sending request to OpenAI for color analysis...');
+
+      try {
+        const completion = await openai.chat.completions.create({
+          model: "gpt-4",
+          messages: [
+            {
+              role: 'system',
+              content: `You are a color accessibility expert. Analyze the provided CSS and color values to extract:
 1. Dominant colors used in the design
 2. Color combinations (foreground/background pairs)
 3. WCAG compliance issues
@@ -791,59 +808,68 @@ Return a JSON object with this structure:
   ],
   "suggestions": ["suggestion1", "suggestion2", ...]
 }`
-        },
-        {
-          role: 'user',
-          content: `Analyze the colors in this HTML:\n${html}`
-        }
-      ];
-
-      console.log('Sending request to OpenAI for color analysis...');
-      const completion = await openai.chat.completions.create({
-        model: "gpt-4",
-        messages,
-        temperature: 0.7,
-        response_format: { type: "json_object" }
-      });
-
-      const aiResponse = completion.choices[0].message.content;
-      console.log('Received OpenAI response:', aiResponse);
-
-      let aiAnalysis;
-      try {
-        aiAnalysis = JSON.parse(aiResponse || '{}');
-        // Validate the response structure
-        if (!aiAnalysis.dominantColors || !Array.isArray(aiAnalysis.dominantColors)) {
-          throw new Error('Invalid AI response: missing or invalid dominantColors array');
-        }
-        if (!aiAnalysis.colorPairs || !Array.isArray(aiAnalysis.colorPairs)) {
-          throw new Error('Invalid AI response: missing or invalid colorPairs array');
-        }
-      } catch (error) {
-        console.error('Failed to parse AI response:', error);
-        console.error('Raw AI response:', aiResponse);
-        return res.status(500).json({
-          error: 'Analysis failed',
-          details: 'Failed to process color analysis results'
+            },
+            {
+              role: 'user',
+              content: `Analyze these colors and styles:\n${relevantContent}`
+            }
+          ],
+          temperature: 0.7,
+          max_tokens: 1000,
+          response_format: { type: "json_object" }
         });
+
+        const aiResponse = completion.choices[0].message.content;
+        console.log('Received OpenAI response:', aiResponse);
+
+        let aiAnalysis;
+        try {
+          aiAnalysis = JSON.parse(aiResponse || '{}');
+          // Validate response structure
+          if (!aiAnalysis.dominantColors || !Array.isArray(aiAnalysis.dominantColors)) {
+            throw new Error('Invalid AI response: missing or invalid dominantColors array');
+          }
+          if (!aiAnalysis.colorPairs || !Array.isArray(aiAnalysis.colorPairs)) {
+            throw new Error('Invalid AI response: missing or invalid colorPairs array');
+          }
+        } catch (error) {
+          console.error('Failed to parse AI response:', error);
+          console.error('Raw AI response:', aiResponse);
+          throw new Error('Failed to process color analysis results');
+        }
+
+        // Enhance AI analysis with contrast calculations
+        const colorAnalysis: ColorAnalysis = {
+          dominantColors: aiAnalysis.dominantColors,
+          colorPairs: aiAnalysis.colorPairs.map((pair: any) => {
+            const contrastRatio = calculateContrastRatio(pair.foreground, pair.background);
+            return {
+              ...pair,
+              contrastRatio,
+              wcagAACompliant: contrastRatio >= 4.5,
+              wcagAAACompliant: contrastRatio >= 7
+            };
+          }),
+          suggestions: aiAnalysis.suggestions
+        };
+
+        res.json(colorAnalysis);
+
+      } catch (error) {
+        if (error instanceof OpenAI.APIError) {
+          if (error.status === 429) {
+            return res.status(429).json({
+              error: 'Service temporarily unavailable',
+              details: 'Too many requests. Please try again in a few minutes.'
+            });
+          }
+          return res.status(error.status || 500).json({
+            error: 'Analysis failed',
+            details: 'Failed to analyze colors. Please try again later.'
+          });
+        }
+        throw error;
       }
-
-      // Validate and enhance AI analysis
-      const colorAnalysis: ColorAnalysis = {
-        dominantColors: aiAnalysis.dominantColors || [],
-        colorPairs: (aiAnalysis.colorPairs || []).map((pair: any) => {
-          const contrastRatio = calculateContrastRatio(pair.foreground, pair.background);
-          return {
-            ...pair,
-            contrastRatio,
-            wcagAACompliant: contrastRatio >= 4.5,
-            wcagAAACompliant: contrastRatio >= 7
-          };
-        }),
-        suggestions: aiAnalysis.suggestions || []
-      };
-
-      res.json(colorAnalysis);
 
     } catch (error) {
       console.error('Color analysis error:', error);
@@ -852,14 +878,6 @@ Return a JSON object with this structure:
         return res.status(400).json({
           error: 'Invalid request format',
           details: 'Please provide a valid URL for analysis'
-        });
-      }
-
-      if (error instanceof OpenAI.APIError) {
-        console.error('OpenAI API error:', error);
-        return res.status(error.status || 500).json({
-          error: 'Analysis failed',
-          details: 'Failed to analyze colors. Please try again later.'
         });
       }
 
