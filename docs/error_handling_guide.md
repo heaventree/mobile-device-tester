@@ -2,76 +2,97 @@
 
 ## Common Error Patterns and Solutions
 
-### 1. URL Input and Validation Errors
+### 1. Input Validation Errors
 ```typescript
-// Problem: Multiple refreshes during URL input
-// Solution: Implement debouncing and proper validation
-
-// Use debounce hook
-const debouncedUrl = useDebounce(url, 800);
-
-// Validate URL properly
-if (debouncedUrl.includes('.') && debouncedUrl.length > 4) {
+// Pattern: Validate inputs early
+function validateInput<T>(data: unknown, schema: z.ZodSchema<T>): T {
   try {
-    const urlObj = new URL(debouncedUrl.startsWith('http') ? debouncedUrl : `https://${debouncedUrl}`);
-    onValidURL(urlObj.toString());
+    return schema.parse(data);
   } catch (error) {
-    // Handle error silently during typing
+    throw new ValidationError('Invalid input data', { cause: error });
   }
+}
+
+// Usage
+const data = validateInput(req.body, userSchema);
+```
+
+### 2. API Error Handling
+```typescript
+// Centralized error handling
+class APIError extends Error {
+  constructor(
+    message: string,
+    public status: number = 500,
+    public code?: string
+  ) {
+    super(message);
+  }
+}
+
+// Error handler middleware
+function errorHandler(
+  error: Error,
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  if (error instanceof APIError) {
+    res.status(error.status).json({
+      error: error.message,
+      code: error.code
+    });
+    return;
+  }
+
+  // Log unexpected errors
+  console.error('Unexpected error:', error);
+  res.status(500).json({
+    error: 'Internal server error'
+  });
 }
 ```
 
-### 2. CORS and IFrame Loading Issues
+### 3. Async Error Handling
 ```typescript
-// Problem: Content not loading in iframes
-// Solution: Proper CORS headers and content security policy
+// Async wrapper pattern
+const asyncHandler = (fn: AsyncRequestHandler) =>
+  (req: Request, res: Response, next: NextFunction) => {
+    Promise.resolve(fn(req, res, next)).catch(next);
+  };
 
-// Server-side CORS handling
-app.options("/api/fetch-page", (req, res) => {
-  res.set({
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
-    'Access-Control-Max-Age': '86400'
-  });
-  res.status(204).end();
-});
-
-// Content security headers
-res.set({
-  'X-Frame-Options': 'ALLOWALL',
-  'Content-Security-Policy': "frame-ancestors *",
-  'X-Content-Type-Options': 'nosniff'
-});
-```
-
-### 3. Type Definition Errors
-```typescript
-// Problem: Missing type definitions
-// Solution: Centralized type definitions with Zod validation
-
-// Define schema first
-export const progressStatsSchema = z.object({
-  sitesAnalyzed: z.number().default(0),
-  testsRun: z.number().default(0),
-  issuesFixed: z.number().default(0),
-  perfectScores: z.number().default(0)
-});
-
-// Generate type from schema
-export type ProgressStats = z.infer<typeof progressStatsSchema>;
-
-// Validate data
-const validatedData = progressStatsSchema.parse(data);
+// Usage
+app.get('/api/users', asyncHandler(async (req, res) => {
+  const users = await userService.getUsers();
+  res.json(users);
+}));
 ```
 
 ## Debugging Strategy
 
-### 1. Console Logging
-- Add strategic console.debug statements
-- Log important state changes
-- Track API responses
-- Monitor performance metrics
+### 1. Logging Best Practices
+```typescript
+// Structured logging
+const logger = {
+  debug(message: string, context?: Record<string, unknown>) {
+    console.debug(JSON.stringify({
+      level: 'debug',
+      message,
+      context,
+      timestamp: new Date().toISOString()
+    }));
+  },
+  error(error: Error, context?: Record<string, unknown>) {
+    console.error(JSON.stringify({
+      level: 'error',
+      message: error.message,
+      stack: error.stack,
+      context,
+      timestamp: new Date().toISOString()
+    }));
+  }
+};
+```
 
 ### 2. Error Boundaries
 ```typescript
@@ -83,7 +104,7 @@ class ErrorBoundary extends React.Component {
   }
 
   componentDidCatch(error, errorInfo) {
-    console.error('Error caught by boundary:', error, errorInfo);
+    logger.error(error, { componentStack: errorInfo.componentStack });
   }
 
   render() {
@@ -95,106 +116,142 @@ class ErrorBoundary extends React.Component {
 }
 ```
 
-### 3. API Error Handling
+### 3. Performance Monitoring
 ```typescript
-async function apiRequest(method: string, url: string, data?: any) {
-  try {
-    const response = await fetch(url, {
-      method,
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: data ? JSON.stringify(data) : undefined
+// Performance monitoring hook
+function usePerformanceMonitoring() {
+  useEffect(() => {
+    const observer = new PerformanceObserver((list) => {
+      list.getEntries().forEach((entry) => {
+        logger.debug('Performance metric:', {
+          name: entry.name,
+          duration: entry.duration,
+          startTime: entry.startTime,
+        });
+      });
     });
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || 'API request failed');
-    }
-
-    return await response.json();
-  } catch (error) {
-    console.error(`API Error (${method} ${url}):`, error);
-    throw error;
-  }
+    observer.observe({ entryTypes: ['measure', 'paint'] });
+    return () => observer.disconnect();
+  }, []);
 }
-```
-
-### 4. React Query Error Handling
-```typescript
-const { data, error, isLoading } = useQuery({
-  queryKey: ['key'],
-  queryFn: async () => {
-    try {
-      return await apiRequest('GET', '/api/endpoint');
-    } catch (error) {
-      console.error('Query error:', error);
-      throw error;
-    }
-  },
-  onError: (error) => {
-    toast({
-      title: "Error",
-      description: error instanceof Error ? error.message : 'Query failed',
-      variant: "destructive"
-    });
-  }
-});
 ```
 
 ## Testing and Validation
 
-### 1. Component Testing
+### 1. Unit Testing
 ```typescript
-describe('Component', () => {
-  it('handles errors gracefully', async () => {
-    const { getByRole, findByText } = render(<Component />);
-    
-    // Trigger error state
-    fireEvent.click(getByRole('button'));
-    
-    // Verify error handling
-    expect(await findByText('Error message')).toBeInTheDocument();
+describe('UserService', () => {
+  it('handles invalid input gracefully', async () => {
+    const invalidData = { email: 'invalid' };
+
+    await expect(
+      userService.createUser(invalidData)
+    ).rejects.toThrow(ValidationError);
   });
 });
 ```
 
-### 2. API Testing
+### 2. Integration Testing
 ```typescript
-describe('API Endpoints', () => {
-  it('handles invalid input correctly', async () => {
-    const response = await request(app)
-      .post('/api/endpoint')
-      .send({ invalidData: true });
-    
-    expect(response.status).toBe(400);
-    expect(response.body).toHaveProperty('error');
+describe('API Integration', () => {
+  it('handles server errors appropriately', async () => {
+    // Mock server error
+    server.use(
+      rest.get('/api/users', (req, res, ctx) => {
+        return res(ctx.status(500));
+      })
+    );
+
+    const { result } = renderHook(() => useUsers());
+
+    expect(result.current.error).toBeDefined();
+    expect(result.current.data).toBeNull();
   });
 });
 ```
 
-## Monitoring and Logging
+## Error Prevention
 
-### 1. Performance Monitoring
+### 1. Type Safety
 ```typescript
-// Track component render times
-const startTime = performance.now();
-useEffect(() => {
-  const endTime = performance.now();
-  console.debug(`Component rendered in ${endTime - startTime}ms`);
-}, []);
-```
-
-### 2. Error Tracking
-```typescript
-// Central error logging
-function logError(error: Error, context?: string) {
-  console.error(`[${context}] Error:`, {
-    message: error.message,
-    stack: error.stack,
-    timestamp: new Date().toISOString()
-  });
+// Define strict types
+interface RequestParams<T> {
+  endpoint: string;
+  method: 'GET' | 'POST' | 'PUT' | 'DELETE';
+  data?: T;
+  headers?: Record<string, string>;
 }
+
+// Type-safe request function
+async function apiRequest<T, R>({
+  endpoint,
+  method,
+  data,
+  headers
+}: RequestParams<T>): Promise<R> {
+  const response = await fetch(endpoint, {
+    method,
+    headers: {
+      'Content-Type': 'application/json',
+      ...headers
+    },
+    body: data ? JSON.stringify(data) : undefined
+  });
+
+  if (!response.ok) {
+    throw new APIError('Request failed', response.status);
+  }
+
+  return response.json();
+}
+```
+
+### 2. Runtime Validation
+```typescript
+// Schema validation
+const userSchema = z.object({
+  name: z.string().min(1),
+  email: z.string().email(),
+  age: z.number().min(0).max(150)
+});
+
+// Validation middleware
+const validateBody = (schema: z.ZodSchema) =>
+  (req: Request, res: Response, next: NextFunction) => {
+    try {
+      req.body = schema.parse(req.body);
+      next();
+    } catch (error) {
+      next(new ValidationError('Invalid request body', { cause: error }));
+    }
+  };
+```
+
+### 3. Error Recovery
+```typescript
+// Retry mechanism
+async function withRetry<T>(
+  operation: () => Promise<T>,
+  maxRetries = 3,
+  delay = 1000
+): Promise<T> {
+  let lastError: Error | null = null;
+
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      return await operation();
+    } catch (error) {
+      lastError = error;
+      await new Promise(resolve => setTimeout(resolve, delay * Math.pow(2, i)));
+    }
+  }
+
+  throw lastError;
+}
+
+// Usage
+const result = await withRetry(() => apiRequest({ endpoint: '/api/data' }));
 ```
 
 ## Best Practices
@@ -210,109 +267,7 @@ function logError(error: Error, context?: string) {
 9. Test error scenarios
 10. Document error patterns
 
-Remember to adapt these patterns based on your specific use case and requirements.
-
-## AI-Powered Debugging
-
-### 1. Automated Error Detection
-```typescript
-// Implement AI-driven error tracking
-const errorTracker = {
-  async analyzeError(error: Error, context: string) {
-    return await aiAnalyze({
-      error: error.message,
-      stack: error.stack,
-      context,
-      timestamp: new Date().toISOString()
-    });
-  }
-};
-```
-
-### 2. Self-Healing Mechanisms
-```typescript
-// Implement automatic recovery strategies
-class AutoRecovery {
-  static async attemptRecovery(operation: () => Promise<any>, maxRetries = 3) {
-    for (let i = 0; i < maxRetries; i++) {
-      try {
-        return await operation();
-      } catch (error) {
-        if (i === maxRetries - 1) throw error;
-        await new Promise(resolve => setTimeout(resolve, Math.pow(2, i) * 1000));
-      }
-    }
-  }
-}
-```
-
-### 3. Proactive Monitoring
-```typescript
-// Set up real-time performance monitoring
-const performanceMonitor = {
-  trackMetric(name: string, value: number) {
-    const timestamp = Date.now();
-    console.debug(`[${name}] ${value}ms at ${new Date(timestamp).toISOString()}`);
-    // Add to monitoring system
-  }
-};
-```
-
-## Lean Architecture
-
-### 1. Code Optimization
-```typescript
-// Example of optimized imports
-import { useCallback, memo } from 'react';
-import type { FC } from 'react';
-
-// Use memo for pure components
-const OptimizedComponent: FC = memo(({ prop }) => {
-  const handler = useCallback(() => {
-    // Handler logic
-  }, []);
-
-  return <div onClick={handler}>{prop}</div>;
-});
-```
-
-### 2. Resource Management
-```typescript
-// Implement resource cleanup
-useEffect(() => {
-  const cleanup = setupResource();
-  return () => {
-    cleanup();
-    performanceMonitor.trackMetric('resource-cleanup', Date.now());
-  };
-}, []);
-```
-
-### 3. State Management
-```typescript
-// Efficient state updates
-const [state, setState] = useState<CacheState>({
-  data: null,
-  timestamp: null
-});
-
-const updateState = useCallback((newData: any) => {
-  setState(prev => ({
-    ...prev,
-    data: newData,
-    timestamp: Date.now()
-  }));
-}, []);
-```
-
-## Additional Guidelines
-
-1. Always prioritize performance without sacrificing maintainability
-2. Use type-safe operations throughout the codebase
-3. Implement proper error boundaries and fallbacks
-4. Add comprehensive logging for debugging
-5. Maintain consistent error handling patterns
-
+Remember to adapt these patterns based on your specific needs and requirements.
 
 ## Security and Authentication
 

@@ -1,209 +1,320 @@
-# Development Guide: Cross-Platform Web Testing Application
+# Full-Stack Development Guide
 
 ## Table of Contents
-1. [Core Architecture](#core-architecture)
-2. [Development Principles](#development-principles)
-3. [Token Efficiency](#token-efficiency)
-4. [Build & Deployment](#build-deployment)
-5. [Future Enhancements](#future-enhancements)
-6. [Documentation Standards](#documentation-standards)
+1. [Architecture Patterns](#architecture-patterns)
+2. [Development Workflow](#development-workflow)
+3. [Code Organization](#code-organization)
+4. [Error Prevention](#error-prevention)
+5. [Performance Optimization](#performance-optimization)
+6. [Security Best Practices](#security-best-practices)
+7. [Deployment Strategy](#deployment-strategy)
+8. [Maintenance Guidelines](#maintenance-guidelines)
 
-## Core Architecture
+## Architecture Patterns
 
-### Technology Stack
-- Frontend: React with TypeScript
-- Bundler: Vite (optimized for speed)
-- Styling: Tailwind CSS & PostCSS
-- State Management: Zustand + React Context API
-- APIs: OpenAI, Stripe, GraphQL integration
-- Testing: Jest, React Testing Library
-- Deployment: Netlify via Vite builds
-- Storage: LocalForage with IndexedDB
+### Modern Web Stack Selection
+- Choose proven, well-maintained frameworks
+- Consider team expertise and learning curve
+- Evaluate community support and documentation
+- Assess long-term maintainability
+- Consider scalability requirements
+
+### File Structure Best Practices
+```
+├── client/
+│   ├── src/
+│   │   ├── components/
+│   │   │   ├── ui/           # Reusable UI components
+│   │   │   └── features/     # Feature-specific components
+│   │   ├── hooks/           # Custom hooks
+│   │   ├── lib/            # Utilities and helpers
+│   │   ├── pages/         # Route components
+│   │   └── types/        # TypeScript definitions
+├── server/
+│   ├── src/
+│   │   ├── routes/       # API endpoints
+│   │   ├── services/     # Business logic
+│   │   ├── models/       # Data models
+│   │   └── utils/        # Helper functions
+└── shared/              # Shared types and utilities
+```
 
 ### Development Principles
 
-#### Lean Architecture & Token Efficiency
-- Minimal Codebase: Prioritize modularity and reusability
-- Efficient State Management: Zustand for streamlined state
-- Fast Builds: Utilize Vite's tree-shaking
-- Automated Cleanup: Regular audits of unused components
-- Intelligent API Interaction: Smart caching strategies
-
-#### Persistent Storage & Data Integrity
+#### Type Safety
 ```typescript
-// Example LocalForage Configuration
-import localforage from 'localforage';
+// Define schemas first
+import { z } from 'zod';
 
-const store = localforage.createInstance({
-  name: 'appStorage',
-  storeName: 'mainCache',
-  description: 'Application data store'
+export const userSchema = z.object({
+  id: z.string(),
+  name: z.string().min(1),
+  email: z.string().email(),
+  role: z.enum(['user', 'admin'])
 });
 
-// Automated sync mechanism
-class StorageSync {
-  private static syncInterval = 5000;
-
-  static startAutoSync() {
-    setInterval(async () => {
-      await this.syncWithServer();
-    }, this.syncInterval);
-  }
-}
+// Generate types from schema
+export type User = z.infer<typeof userSchema>;
 ```
 
-#### Security & Stability
+#### State Management
 ```typescript
-// Example API Security Configuration
-const securityMiddleware = {
-  validateToken: async (token: string) => {
-    // Token validation logic
-  },
+// Centralized store pattern
+interface Store {
+  state: AppState;
+  actions: Actions;
+}
 
-  encryptLocalData: (data: any) => {
-    // Local data encryption
-  }
-};
+// Action creators
+const createActions = (set: SetState<Store>) => ({
+  updateUser: (user: User) => 
+    set(state => ({ ...state, user })),
+  // Other actions...
+});
 ```
 
-### Build & Deployment Workflow
+## Development Workflow
 
-#### Development Commands
+### Setting Up New Features
+1. Define requirements and acceptance criteria
+2. Create data models and schemas
+3. Implement backend services
+4. Build UI components
+5. Add tests and documentation
+6. Review and refine
+
+### Code Review Guidelines
+- Check type safety
+- Verify error handling
+- Review performance impact
+- Ensure accessibility
+- Validate test coverage
+- Check documentation
+
+### Version Control Best Practices
 ```bash
-# Development
-npm run dev       # Start development server
+# Branch naming
+feature/feature-name
+bugfix/issue-description
+refactor/component-name
 
-# Build
-npm run build    # Production build
-npm run lint     # Run ESLint checks
-npm run test     # Run test suite
-
-# Deployment
-npm run deploy   # Deploy to Netlify
+# Commit messages
+feat: add user authentication
+fix: resolve memory leak in data fetching
+refactor: optimize bundle size
+docs: update API documentation
 ```
 
-#### Environment Configuration
+## Code Organization
+
+### Component Template
 ```typescript
-// Example .env structure
-VITE_API_URL=http://localhost:3000
-VITE_API_KEY=your_api_key
-VITE_ENVIRONMENT=development
+interface Props {
+  // Props interface
+}
+
+export function Component({ prop1, prop2 }: Props) {
+  // State
+  const [state, setState] = useState<State>();
+
+  // Effects
+  useEffect(() => {
+    // Side effects
+  }, [dependencies]);
+
+  // Event handlers
+  const handleEvent = useCallback(() => {
+    // Event logic
+  }, [dependencies]);
+
+  // Render
+  return (
+    <div>
+      {/* Component JSX */}
+    </div>
+  );
+}
 ```
 
-### Documentation & Maintenance
+### API Pattern
+```typescript
+// Service layer
+class UserService {
+  async createUser(data: CreateUserDTO): Promise<User> {
+    const validated = userSchema.parse(data);
+    // Implementation
+  }
+}
 
-#### Setup Procedures
-1. Environment configuration
-2. API key management
-3. Database connection setup
-4. Local development setup
+// Route handler
+app.post('/api/users', async (req, res) => {
+  try {
+    const user = await userService.createUser(req.body);
+    res.json(user);
+  } catch (error) {
+    handleError(error, res);
+  }
+});
+```
 
-#### Package Management
-```json
-{
-  "scripts": {
-    "update-deps": "npm update",
-    "audit": "npm audit fix",
-    "clean": "rm -rf node_modules"
+## Error Prevention
+
+### Validation Strategy
+```typescript
+// Request validation
+const validateRequest = (schema: z.ZodSchema) => 
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      req.body = schema.parse(req.body);
+      next();
+    } catch (error) {
+      res.status(400).json({ error: formatZodError(error) });
+    }
+  };
+
+// Usage
+app.post('/api/users', validateRequest(userSchema), handleRequest);
+```
+
+### Error Boundaries
+```typescript
+class ErrorBoundary extends React.Component {
+  state = { hasError: false };
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error, info) {
+    // Log error
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return <ErrorFallback />;
+    }
+    return this.props.children;
   }
 }
 ```
 
-### Future Enhancements & Scalability
+## Performance Optimization
 
-#### Migration Strategies
+### Frontend Optimization
+1. Implement code splitting
+2. Use lazy loading
+3. Optimize images and assets
+4. Cache API responses
+5. Minimize bundle size
+
+### Backend Optimization
+1. Implement request caching
+2. Optimize database queries
+3. Use connection pooling
+4. Configure rate limiting
+5. Enable compression
+
+### Monitoring
 ```typescript
-// Example Database Migration
-class DatabaseMigration {
-  static async migrate() {
-    await db.migrate.latest();
+// Performance monitoring
+const monitor = {
+  start(operation: string) {
+    const start = performance.now();
+    return () => {
+      const duration = performance.now() - start;
+      // Log or report duration
+    };
   }
-
-  static async rollback() {
-    await db.migrate.rollback();
-  }
-}
-```
-
-#### Feature Integration
-```typescript
-// Example Feature Flag System
-const featureFlags = {
-  enableNewFeature: process.env.ENABLE_NEW_FEATURE === 'true',
-  betaFeatures: process.env.BETA_FEATURES?.split(',') || []
 };
+
+// Usage
+const end = monitor.start('operation');
+// ... operation
+end();
 ```
-
-### Best Practices
-
-#### Code Quality
-1. Use TypeScript strict mode
-2. Implement comprehensive testing
-3. Follow accessibility guidelines
-4. Maintain proper documentation
-5. Regular dependency updates
-
-#### Performance
-1. Implement lazy loading
-2. Optimize bundle size
-3. Use proper caching
-4. Monitor performance metrics
-5. Regular performance audits
-
-#### Security
-1. Regular security audits
-2. Input validation
-3. CORS configuration
-4. API rate limiting
-5. Error handling
-
-Remember to adapt these guidelines based on specific project requirements and team preferences.
-
 
 ## Security Best Practices
 
-### Frontend Security
-1. Input validation
-2. XSS prevention
-3. CSRF protection
-4. Secure storage
-5. API security
+### Authentication
+```typescript
+// JWT middleware
+const authenticate = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) throw new Error('No token provided');
 
-### Backend Security
-1. Rate limiting
-2. Input sanitization
-3. Authorization
-4. Data validation
-5. Error handling
+    const decoded = verifyToken(token);
+    req.user = decoded;
+    next();
+  } catch (error) {
+    res.status(401).json({ error: 'Unauthorized' });
+  }
+};
+```
+
+### Data Validation
+```typescript
+// Input sanitization
+const sanitizeInput = (input: string): string => {
+  return input
+    .replace(/[<>]/g, '') // Remove HTML tags
+    .trim() // Remove whitespace
+    .slice(0, 1000); // Limit length
+};
+
+// Usage
+app.post('/api/comments', (req, res) => {
+  const sanitizedComment = sanitizeInput(req.body.comment);
+  // Process comment
+});
+```
 
 ## Deployment Strategy
 
-### Deployment Checklist
-1. Environment configuration
-2. Build optimization
-3. Security checks
-4. Performance testing
-5. Rollback plan
+### Build Process
+```bash
+# Development
+npm run dev      # Start development server
+npm run test     # Run test suite
+npm run lint     # Check code quality
 
-### Continuous Integration
-1. Automated testing
-2. Code quality checks
-3. Security scanning
-4. Performance monitoring
-5. Deployment automation
+# Production
+npm run build    # Create production build
+npm run deploy   # Deploy to production
+```
 
-## Maintenance and Updates
+### Environment Configuration
+```typescript
+// Environment validation
+const validateEnv = () => {
+  const required = [
+    'DATABASE_URL',
+    'API_KEY',
+    'JWT_SECRET'
+  ];
 
-### Regular Maintenance
-1. Dependency updates
-2. Security patches
-3. Performance optimization
-4. Bug fixes
-5. Documentation updates
+  for (const var_ of required) {
+    if (!process.env[var_]) {
+      throw new Error(`Missing ${var_} environment variable`);
+    }
+  }
+};
+```
 
-### Version Control
-1. Semantic versioning
-2. Changelog maintenance
-3. Release notes
-4. Migration guides
-5. Backup strategies
+## Maintenance Guidelines
+
+### Dependency Management
+1. Regular security audits
+2. Version control
+3. Breaking change reviews
+4. Dependency updates
+5. Compatibility testing
+
+### Documentation Standards
+1. API documentation
+2. Component documentation
+3. Setup instructions
+4. Deployment guides
+5. Troubleshooting guides
+
+Remember to adapt these patterns based on specific project requirements and constraints.

@@ -3,36 +3,63 @@
 ## Table of Contents
 1. [Design System](#design-system)
 2. [Component Architecture](#component-architecture)
-3. [Tailwind CSS Patterns](#tailwind-css-patterns)
-4. [Icon Implementation](#icon-implementation)
-5. [Accessibility Guidelines](#accessibility-guidelines)
+3. [Responsive Design](#responsive-design)
+4. [Typography](#typography)
+5. [Color System](#color-system)
+6. [Spacing](#spacing)
+7. [Animation](#animation)
+8. [Accessibility](#accessibility)
 
 ## Design System
 
 ### Colors and Gradients
 ```css
-/* Primary gradients */
+/* Primary colors */
+:root {
+  --color-primary: #4f46e5;
+  --color-secondary: #9333ea;
+  --color-accent: #ec4899;
+
+  --color-gray-50: #f9fafb;
+  --color-gray-100: #f3f4f6;
+  --color-gray-800: #1f2937;
+  --color-gray-900: #111827;
+}
+
+/* Gradients */
 .gradient-primary {
-  @apply bg-gradient-to-r from-indigo-600 to-purple-600;
+  @apply bg-gradient-to-r from-primary to-secondary;
 }
 
-/* Text gradients */
 .gradient-text {
-  @apply bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-pink-600;
+  @apply bg-clip-text text-transparent 
+         bg-gradient-to-r from-purple-400 to-pink-600;
 }
+```
 
-/* Button gradients */
-.button-gradient {
-  @apply bg-gradient-to-r from-blue-500 to-indigo-500 
-         hover:from-blue-600 hover:to-indigo-600 
-         active:from-blue-700 active:to-indigo-700;
+### Typography Scale
+```css
+:root {
+  /* Font sizes */
+  --font-xs: 0.75rem;   /* 12px */
+  --font-sm: 0.875rem;  /* 14px */
+  --font-base: 1rem;    /* 16px */
+  --font-lg: 1.125rem;  /* 18px */
+  --font-xl: 1.25rem;   /* 20px */
+  --font-2xl: 1.5rem;   /* 24px */
+  --font-3xl: 1.875rem; /* 30px */
+
+  /* Line heights */
+  --leading-none: 1;
+  --leading-tight: 1.25;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.75;
 }
 ```
 
 ### Spacing Scale
 ```css
-/* Consistent spacing scale */
-.spacing-scale {
+:root {
   --space-1: 0.25rem;  /* 4px */
   --space-2: 0.5rem;   /* 8px */
   --space-3: 0.75rem;  /* 12px */
@@ -48,50 +75,90 @@
 
 ### Base Components
 ```typescript
-// Button component with gradient support
+// Button component
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'secondary' | 'gradient';
+  variant?: 'primary' | 'secondary' | 'outline';
   size?: 'sm' | 'md' | 'lg';
+  isLoading?: boolean;
 }
 
-export function Button({ variant = 'primary', size = 'md', ...props }: ButtonProps) {
+export function Button({
+  variant = 'primary',
+  size = 'md',
+  isLoading,
+  children,
+  ...props
+}: ButtonProps) {
   return (
     <button
       className={cn(
         'rounded-md font-medium transition-colors',
         {
-          'bg-gradient-to-r from-blue-500 to-indigo-500': variant === 'gradient',
+          'bg-primary text-white': variant === 'primary',
+          'bg-secondary text-white': variant === 'secondary',
+          'border-2 border-primary': variant === 'outline',
           'px-3 py-1.5 text-sm': size === 'sm',
           'px-4 py-2 text-base': size === 'md',
           'px-6 py-3 text-lg': size === 'lg',
+          'opacity-50 cursor-not-allowed': isLoading
         }
       )}
+      disabled={isLoading}
       {...props}
-    />
+    >
+      {isLoading ? <LoadingSpinner /> : children}
+    </button>
   );
 }
 ```
 
 ### Layout Components
 ```typescript
-// Responsive container
-export function Container({ children, className }: { children: React.ReactNode; className?: string }) {
+// Container component
+interface ContainerProps {
+  children: React.ReactNode;
+  className?: string;
+  maxWidth?: 'sm' | 'md' | 'lg' | 'xl';
+}
+
+export function Container({
+  children,
+  className,
+  maxWidth = 'lg'
+}: ContainerProps) {
   return (
-    <div className={cn(
-      'mx-auto max-w-7xl px-4 sm:px-6 lg:px-8',
-      className
-    )}>
+    <div
+      className={cn(
+        'mx-auto px-4 sm:px-6 lg:px-8',
+        {
+          'max-w-screen-sm': maxWidth === 'sm',
+          'max-w-screen-md': maxWidth === 'md',
+          'max-w-screen-lg': maxWidth === 'lg',
+          'max-w-screen-xl': maxWidth === 'xl'
+        },
+        className
+      )}
+    >
       {children}
     </div>
   );
 }
 ```
 
-## Tailwind CSS Patterns
+## Responsive Design
 
-### Responsive Design
+### Breakpoint System
 ```typescript
-// Mobile-first approach
+// Mobile-first breakpoints
+const breakpoints = {
+  sm: '640px',   // Small devices
+  md: '768px',   // Medium devices
+  lg: '1024px',  // Large devices
+  xl: '1280px',  // Extra large devices
+  '2xl': '1536px' // 2X Extra large devices
+};
+
+// Usage in components
 <div className="
   grid
   grid-cols-1
@@ -104,17 +171,95 @@ export function Container({ children, className }: { children: React.ReactNode; 
 ">
 ```
 
-### Interactive States
+### Responsive Typography
+```css
+/* Fluid typography */
+.heading-1 {
+  font-size: clamp(2rem, 5vw, 4rem);
+  line-height: 1.2;
+}
+
+.heading-2 {
+  font-size: clamp(1.5rem, 4vw, 3rem);
+  line-height: 1.3;
+}
+```
+
+## Animation
+
+### Motion Principles
+```css
+/* Transition defaults */
+:root {
+  --transition-fast: 150ms;
+  --transition-base: 200ms;
+  --transition-slow: 300ms;
+  --ease-default: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --ease-out: cubic-bezier(0, 0, 0.2, 1);
+}
+
+/* Animation utilities */
+.animate-fade {
+  @apply transition-opacity duration-200;
+}
+
+.animate-scale {
+  @apply transition-transform duration-200;
+}
+
+/* Respect user preferences */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+```
+
+## Accessibility
+
+### Focus Management
+```css
+/* Focus styles */
+.focus-ring {
+  @apply focus:outline-none
+         focus:ring-2
+         focus:ring-offset-2
+         focus:ring-primary;
+}
+
+/* Skip links */
+.skip-link {
+  @apply sr-only focus:not-sr-only
+         focus:fixed focus:top-0 focus:left-0
+         focus:z-50 focus:p-4 focus:bg-white;
+}
+```
+
+### Color Contrast
 ```typescript
-// Button states
-<button className="
-  bg-blue-500
-  hover:bg-blue-600
-  active:bg-blue-700
-  focus:ring-2
-  focus:ring-blue-500/50
-  focus:outline-none
-">
+// Color contrast checker
+function calculateContrastRatio(color1: string, color2: string): number {
+  // Convert colors to relative luminance
+  const getLuminance = (color: string) => {
+    // Implementation
+  };
+
+  const l1 = getLuminance(color1);
+  const l2 = getLuminance(color2);
+
+  const lighter = Math.max(l1, l2);
+  const darker = Math.min(l1, l2);
+
+  return (lighter + 0.05) / (darker + 0.05);
+}
+
+// Usage
+const isAACompliant = (ratio: number) => ratio >= 4.5;
+const isAAACompliant = (ratio: number) => ratio >= 7;
 ```
 
 ## Icon Implementation
@@ -154,73 +299,27 @@ export function Icon({ icon: Icon, size = 'md', className }: IconProps) {
 }
 ```
 
-## Accessibility Guidelines
-
-### Focus Management
-```typescript
-// Proper focus outlines
-<div className="
-  focus:outline-none
-  focus:ring-2
-  focus:ring-offset-2
-  focus:ring-blue-500
-">
-```
-
-### ARIA Labels
-```typescript
-// Button with loading state
-<Button
-  aria-label={isLoading ? 'Loading...' : 'Submit form'}
-  disabled={isLoading}
->
-  {isLoading ? (
-    <Loader2 className="h-4 w-4 animate-spin" />
-  ) : (
-    'Submit'
-  )}
-</Button>
-```
-
-### Color Contrast
-```typescript
-// Ensure sufficient contrast
-.text-content {
-  @apply text-slate-900 dark:text-slate-50; /* High contrast */
-  @apply text-slate-600 dark:text-slate-400; /* Secondary content */
-}
-```
-
-### Motion Preferences
-```typescript
-// Respect reduced motion preferences
-.animate-element {
-  @apply motion-safe:transition-all motion-safe:duration-200;
-  @apply motion-reduce:transition-none;
-}
-```
-
 ## Best Practices
 
-### Component Organization
-1. Group related components in feature folders
-2. Keep components small and focused
-3. Use composition over inheritance
-4. Implement proper prop typing
-5. Document complex components
+### Component Design
+1. Keep components focused and single-purpose
+2. Use composition over inheritance
+3. Implement proper prop typing
+4. Document complex components
+5. Follow accessibility guidelines
 
-### Performance Optimization
-1. Use proper image optimization
+### Performance
+1. Optimize images and assets
 2. Implement lazy loading
-3. Minimize re-renders
-4. Use proper memoization
-5. Implement code splitting
+3. Use proper caching
+4. Minimize reflows and repaints
+5. Monitor rendering performance
 
-### Code Style
+### Maintainability
 1. Use consistent naming conventions
-2. Follow TypeScript best practices
-3. Implement proper error handling
-4. Add comprehensive documentation
-5. Use proper TypeScript types
+2. Follow BEM or similar methodology
+3. Implement proper documentation
+4. Use CSS custom properties
+5. Maintain a component library
 
-Remember to adapt these patterns based on your specific project needs and requirements.
+Remember to adapt these guidelines based on your specific project needs and requirements.
