@@ -166,7 +166,7 @@ export function AITester({ url, device, cssEnabled, cssContent, onAnalysisComple
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-medium text-slate-200">AI Responsive Testing</h3>
+        <h3 className="text-lg font-medium text-slate-200">Technical Analysis</h3>
         <Button
           onClick={runAnalysis}
           disabled={isQuickAnalyzing || isAiAnalyzing}
@@ -180,10 +180,10 @@ export function AITester({ url, device, cssEnabled, cssContent, onAnalysisComple
           ) : isAiAnalyzing ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              AI Analysis...
+              Technical Analysis...
             </>
           ) : (
-            'Run Analysis'
+            'Technical Analysis'
           )}
         </Button>
       </div>
@@ -214,7 +214,7 @@ export function AITester({ url, device, cssEnabled, cssContent, onAnalysisComple
           <Collapsible>
             <CollapsibleTrigger asChild>
               <Button variant="outline" className="w-full justify-between border-purple-500/20 hover:bg-purple-500/10">
-                <span>View AI Recommendations</span>
+                <span>View Technical Recommendations</span>
                 {isAiAnalyzing ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
@@ -228,7 +228,7 @@ export function AITester({ url, device, cssEnabled, cssContent, onAnalysisComple
                   <div className="flex items-center justify-center py-4">
                     <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                     <span className="ml-2 text-sm text-muted-foreground">
-                      Generating AI recommendations...
+                      Generating technical recommendations...
                     </span>
                   </div>
                 ) : (

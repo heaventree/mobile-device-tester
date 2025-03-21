@@ -214,10 +214,10 @@ ${issue.suggestedFix ? `Suggested Fix:\n${issue.suggestedFix}` : ''}
             {isScanning ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Scanning...
+                Analyzing...
               </>
             ) : (
-              'Scan Design'
+              'Design Analysis'
             )}
           </Button>
         </div>
@@ -254,8 +254,8 @@ ${issue.suggestedFix ? `Suggested Fix:\n${issue.suggestedFix}` : ''}
               {issue.title}
               <span className={`text-xs px-2 py-0.5 rounded-full ${
                 issue.impact === 'high' ? 'bg-red-500/20 text-red-200' :
-                issue.impact === 'medium' ? 'bg-yellow-500/20 text-yellow-200' :
-                'bg-blue-500/20 text-blue-200'
+                  issue.impact === 'medium' ? 'bg-yellow-500/20 text-yellow-200' :
+                    'bg-blue-500/20 text-blue-200'
               }`}>
                 {issue.impact}
               </span>
@@ -291,7 +291,7 @@ ${issue.suggestedFix ? `Suggested Fix:\n${issue.suggestedFix}` : ''}
 
         {issues.length === 0 && !isScanning && (
           <div className="text-center text-slate-400 py-4">
-            Click "Scan Design" to analyze the page for design issues
+            Click "Design Analysis" to analyze the page for design issues
           </div>
         )}
       </div>
