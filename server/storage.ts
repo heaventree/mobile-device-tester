@@ -1,17 +1,33 @@
 import { devices, type Device, type InsertDevice } from "@shared/schema";
 
+interface Project {
+  id: string;
+  name: string;
+  url: string;
+  apiKey: string;
+  status: 'connected' | 'disconnected' | 'error';
+  lastScan?: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export interface IStorage {
   getAllDevices(): Promise<Device[]>;
   getDevice(id: string): Promise<Device | undefined>;
   createDevice(device: InsertDevice): Promise<Device>;
   updateDevice(id: string, device: Partial<InsertDevice>): Promise<Device | undefined>;
+  // Project-related methods
+  getAllProjects(): Promise<Project[]>;
+  createProject(project: Omit<Project, 'id' | 'createdAt' | 'updatedAt'>): Promise<Project>;
 }
 
 export class MemStorage implements IStorage {
   private devices: Map<string, Device>;
+  private projects: Map<string, Project>;
 
   constructor() {
     this.devices = new Map();
+    this.projects = new Map();
     this.initializeDevices();
   }
 
@@ -160,6 +176,24 @@ export class MemStorage implements IStorage {
     const updatedDevice = { ...existingDevice, ...device };
     this.devices.set(id, updatedDevice);
     return updatedDevice;
+  }
+
+  // Project methods implementation
+  async getAllProjects(): Promise<Project[]> {
+    return Array.from(this.projects.values());
+  }
+
+  async createProject(projectData: Omit<Project, 'id' | 'createdAt' | 'updatedAt'>): Promise<Project> {
+    const now = new Date();
+    const project: Project = {
+      ...projectData,
+      id: `proj_${Math.random().toString(36).slice(2)}`,
+      createdAt: now,
+      updatedAt: now
+    };
+
+    this.projects.set(project.id, project);
+    return project;
   }
 }
 

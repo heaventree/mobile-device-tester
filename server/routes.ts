@@ -43,6 +43,28 @@ const aiAnalysisSchema = z.object({
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Get projects list
+  app.get("/api/projects", async (_req, res) => {
+    try {
+      const projects = await storage.getAllProjects();
+      res.json(projects);
+    } catch (error) {
+      console.error('Error fetching projects:', error);
+      res.status(500).json({ message: "Failed to fetch projects" });
+    }
+  });
+
+  // Add new project
+  app.post("/api/projects", async (req, res) => {
+    try {
+      const project = await storage.createProject(req.body);
+      res.status(201).json(project);
+    } catch (error) {
+      console.error('Error creating project:', error);
+      res.status(500).json({ message: "Failed to create project" });
+    }
+  });
+
   // Validate OpenAI API Key
   if (!process.env.OPENAI_API_KEY) {
     console.error('OpenAI API key is missing. AI analysis features will be disabled.');
