@@ -3,7 +3,7 @@ import { randomBytes } from 'crypto';
 // Test WordPress environment configuration
 export const testWordPressConfig = {
   siteUrl: 'http://test-wordpress.local',
-  apiKey: randomBytes(32).toString('hex'),
+  apiKey: 'test-api-key-12345',
   pageId: 1
 };
 

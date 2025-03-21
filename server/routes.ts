@@ -907,26 +907,36 @@ Return a JSON object with this structure:
       }
 
       // Make request to WordPress site
-      const wpResponse = await fetch(`${site_url}/wp-json/device-tester/v1/css`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Device-Tester-Key': api_key
-        },
-        body: JSON.stringify({
-          page_id,
-          css_content,
-          device_type
-        })
-      });
+      try {
+        const wpResponse = await fetch(`${site_url}/wp-json/device-tester/v1/css`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Device-Tester-Key': api_key
+          },
+          body: JSON.stringify({
+            page_id,
+            css_content,
+            device_type
+          })
+        });
 
-      if (!wpResponse.ok) {
-        const error = await wpResponse.text();
-        throw new Error(`WordPress API error: ${error}`);
+        if (!wpResponse.ok) {
+          const error = await wpResponse.text();
+          throw new Error(`WordPress API error: ${error}`);
+        }
+
+        const result = await wpResponse.json();
+        res.json(result);
+
+      } catch (wpError) {
+        // Handle network or WordPress API errors
+        console.error('WordPress API request failed:', wpError);
+        res.status(500).json({
+          success: false,
+          message: wpError instanceof Error ? wpError.message : 'Failed to communicate with WordPress'
+        });
       }
-
-      const result = await wpResponse.json();
-      res.json(result);
 
     } catch (error) {
       console.error('Error applying WordPress CSS:', error);
@@ -951,25 +961,34 @@ Return a JSON object with this structure:
 
       // Test mode: use mock responses
       if (site_url === testWordPressConfig.siteUrl && api_key === testWordPressConfig.apiKey) {
-                console.log('Using test WordPress configuration for revert');
+        console.log('Using test WordPress configuration for revert');
         return res.json(mockWordPressResponses.cssRevert);
       }
 
-      const wpResponse = await fetch(`${site_url}/wp-json/device-tester/v1/css/revert/${changeId}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Device-Tester-Key': api_key
+      try {
+        const wpResponse = await fetch(`${site_url}/wp-json/device-tester/v1/css/revert/${changeId}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Device-Tester-Key': api_key
+          }
+        });
+
+        if (!wpResponse.ok) {
+          const error = await wpResponse.text();
+          throw new Error(`WordPress API error: ${error}`);
         }
-      });
 
-      if (!wpResponse.ok) {
-        const error = await wpResponse.text();
-        throw new Error(`WordPress API error: ${error}`);
+        const result = await wpResponse.json();
+        res.json(result);
+
+      } catch (wpError) {
+        console.error('WordPress API request failed:', wpError);
+        res.status(500).json({
+          success: false,
+          message: wpError instanceof Error ? wpError.message : 'Failed to communicate with WordPress'
+        });
       }
-
-      const result = await wpResponse.json();
-      res.json(result);
 
     } catch (error) {
       console.error('Error reverting WordPress CSS:', error);

@@ -1,0 +1,81 @@
+progressManager.ts:39 Failed to initialize progress: Error: Invalid response format: expected JSON
+    at ProgressManager.initialize (progressManager.ts:33:15)
+    at async fetchProgress (user-stats-dashboard.tsx:33:7)
+initialize @ progressManager.ts:39Understand this errorAI
+jquery-migrate.min.js?ver=3.4.1:2 JQMIGRATE: Migrate is installed, version 3.4.1
+ai-uncode.js:1 Uncaught SyntaxError: Unexpected token '<'Understand this errorAI
+4427507c-54d2-4df9-9554-2b168a39ba27-00-1qiucdsudp6pn.riker.replit.dev/:1 Access to font at 'https://heaventree.ie/wp-content/themes/uncode/library/fonts/uncode-icons.woff2' from origin 'https://4427507c-54d2-4df9-9554-2b168a39ba27-00-1qiucdsudp6pn.riker.replit.dev' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.Understand this errorAI
+uncode-icons.woff2:1 
+            
+            
+           Failed to load resource: net::ERR_FAILEDUnderstand this errorAI
+4427507c-54d2-4df9-9554-2b168a39ba27-00-1qiucdsudp6pn.riker.replit.dev/:1 Access to font at 'https://heaventree.ie/wp-content/themes/uncode/library/fonts/uncode-icons.woff' from origin 'https://4427507c-54d2-4df9-9554-2b168a39ba27-00-1qiucdsudp6pn.riker.replit.dev' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.Understand this errorAI
+uncode-icons.woff:1 
+            
+            
+           Failed to load resource: net::ERR_FAILEDUnderstand this errorAI
+4427507c-54d2-4df9-9554-2b168a39ba27-00-1qiucdsudp6pn.riker.replit.dev/:1 Access to font at 'https://heaventree.ie/wp-content/themes/uncode/library/fonts/uncode-icons.ttf' from origin 'https://4427507c-54d2-4df9-9554-2b168a39ba27-00-1qiucdsudp6pn.riker.replit.dev' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.Understand this errorAI
+uncode-icons.ttf:1 
+            
+            
+           Failed to load resource: net::ERR_FAILEDUnderstand this errorAI
+4427507c-54d2-4df9-9554-2b168a39ba27-00-1qiucdsudp6pn.riker.replit.dev/:1 Access to font at 'https://heaventree.ie/wp-content/plugins/revslider/sr6/assets/fonts/revicons/revicons.woff?5510888' from origin 'https://4427507c-54d2-4df9-9554-2b168a39ba27-00-1qiucdsudp6pn.riker.replit.dev' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.Understand this errorAI
+revicons.woff:1 
+            
+            
+           Failed to load resource: net::ERR_FAILEDUnderstand this errorAI
+4427507c-54d2-4df9-9554-2b168a39ba27-00-1qiucdsudp6pn.riker.replit.dev/:1 Access to font at 'https://heaventree.ie/wp-content/plugins/revslider/sr6/assets/fonts/revicons/revicons.ttf?5510888' from origin 'https://4427507c-54d2-4df9-9554-2b168a39ba27-00-1qiucdsudp6pn.riker.replit.dev' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.Understand this errorAI
+revicons.ttf:1 
+            
+            
+           Failed to load resource: net::ERR_FAILEDUnderstand this errorAI
+4427507c-54d2-4df9-9…riker.replit.dev/:1 Uncaught (in promise) nullUnderstand this errorAI
+chrome-extension://k…rammarly-check.js:2 Uncaught TypeError: Cannot read properties of null (reading 'dataset')
+    at i.isAlreadyLoaded (Grammarly-check.js:2:187414)
+    at i.load (Grammarly-check.js:2:186749)
+    at i.update (Grammarly-check.js:2:187554)
+    at Object.next (Grammarly-check.js:2:258196)
+    at e.next (Grammarly-check.js:2:139018)
+    at t._next (Grammarly-check.js:2:138622)
+    at t.next (Grammarly-check.js:2:138241)
+    at Grammarly-check.js:2:148544
+    at a._next (Grammarly-check.js:2:146850)
+    at t.next (Grammarly-check.js:2:138241)Understand this errorAI
+jquery-migrate.min.js?ver=3.4.1:2 JQMIGRATE: Migrate is installed, version 3.4.1
+ai-uncode.js:1 Uncaught SyntaxError: Unexpected token '<'Understand this errorAI
+4427507c-54d2-4df9-9554-2b168a39ba27-00-1qiucdsudp6pn.riker.replit.dev/:1 Access to font at 'https://heaventree.ie/wp-content/themes/uncode/library/fonts/uncode-icons.woff2' from origin 'https://4427507c-54d2-4df9-9554-2b168a39ba27-00-1qiucdsudp6pn.riker.replit.dev' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.Understand this errorAI
+uncode-icons.woff2:1 
+            
+            
+           Failed to load resource: net::ERR_FAILEDUnderstand this errorAI
+chrome-extension://nkbihfbeogaeaoehlefnkodbefgpgknn/scripts/lockdown-install.js:1 Removing unpermitted intrinsics
+4427507c-54d2-4df9-9554-2b168a39ba27-00-1qiucdsudp6pn.riker.replit.dev/:1 Access to font at 'https://heaventree.ie/wp-content/themes/uncode/library/fonts/uncode-icons.woff' from origin 'https://4427507c-54d2-4df9-9554-2b168a39ba27-00-1qiucdsudp6pn.riker.replit.dev' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.Understand this errorAI
+uncode-icons.woff:1 
+            
+            
+           Failed to load resource: net::ERR_FAILEDUnderstand this errorAI
+4427507c-54d2-4df9-9554-2b168a39ba27-00-1qiucdsudp6pn.riker.replit.dev/:1 Access to font at 'https://heaventree.ie/wp-content/themes/uncode/library/fonts/uncode-icons.ttf' from origin 'https://4427507c-54d2-4df9-9554-2b168a39ba27-00-1qiucdsudp6pn.riker.replit.dev' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.Understand this errorAI
+uncode-icons.ttf:1 
+            
+            
+           Failed to load resource: net::ERR_FAILEDUnderstand this errorAI
+4427507c-54d2-4df9-9554-2b168a39ba27-00-1qiucdsudp6pn.riker.replit.dev/:1 Access to font at 'https://heaventree.ie/wp-content/plugins/revslider/sr6/assets/fonts/revicons/revicons.woff?5510888' from origin 'https://4427507c-54d2-4df9-9554-2b168a39ba27-00-1qiucdsudp6pn.riker.replit.dev' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.Understand this errorAI
+revicons.woff:1 
+            
+            
+           Failed to load resource: net::ERR_FAILEDUnderstand this errorAI
+4427507c-54d2-4df9-9554-2b168a39ba27-00-1qiucdsudp6pn.riker.replit.dev/:1 Access to font at 'https://heaventree.ie/wp-content/plugins/revslider/sr6/assets/fonts/revicons/revicons.ttf?5510888' from origin 'https://4427507c-54d2-4df9-9554-2b168a39ba27-00-1qiucdsudp6pn.riker.replit.dev' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.Understand this errorAI
+revicons.ttf:1 
+            
+            
+           Failed to load resource: net::ERR_FAILEDUnderstand this errorAI
+/api/wordpress/apply-css:1 
+            
+            
+           Failed to load resource: the server responded with a status of 500 (Internal Server Error)Understand this errorAI
+css-fix-preview.tsx:137 WordPress apply error: Error: 500: {"success":false,"message":"request to http://test-wordpress.local/wp-json/device-tester/v1/css failed, reason: getaddrinfo EAI_AGAIN test-wordpress.local"}
+    at throwIfResNotOk (queryClient.ts:6:11)
+    at async apiRequest (queryClient.ts:22:3)
+    at async applyToWordPress (css-fix-preview.tsx:115:24)
+applyToWordPress @ css-fix-preview.tsx:137Understand this errorAI
+anchor:1 Uncaught (in promise) Timeout (j)
