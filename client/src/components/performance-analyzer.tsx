@@ -56,8 +56,9 @@ export function PerformanceAnalyzer({ url, iframeRef }: PerformanceAnalyzerProps
 
       if (!response.ok) {
         const data = await response.json();
-        // Simplify error message
-        throw new Error(data.details.split('.')[0]);
+        // Simplify error message by taking only the first sentence
+        const message = data.details?.split('.')[0] || 'Unable to analyze this website';
+        throw new Error(message);
       }
 
       const { metrics: performanceMetrics, resources: resourceMetrics } = await response.json();
@@ -66,10 +67,11 @@ export function PerformanceAnalyzer({ url, iframeRef }: PerformanceAnalyzerProps
 
     } catch (error) {
       console.error('Performance analysis error:', error);
-      setError(error instanceof Error ? error.message : 'Unable to analyze this website');
+      const errorMessage = error instanceof Error ? error.message : 'Unable to analyze this website';
+      setError(errorMessage);
       toast({
         title: "Analysis Failed",
-        description: error instanceof Error ? error.message : 'Unable to analyze this website',
+        description: errorMessage,
         variant: "destructive"
       });
     } finally {
@@ -97,6 +99,27 @@ export function PerformanceAnalyzer({ url, iframeRef }: PerformanceAnalyzerProps
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
   };
+
+  // Render empty state
+  if (!metrics.length && !isAnalyzing) {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-medium text-slate-200">Performance Analysis</h3>
+          <Button
+            onClick={analyzePerformance}
+            disabled={isAnalyzing}
+            className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 min-w-[160px]"
+          >
+            Analyze Performance
+          </Button>
+        </div>
+        <div className="text-center text-slate-400 py-4">
+          Click "Analyze Performance" to examine page performance
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -167,12 +190,6 @@ export function PerformanceAnalyzer({ url, iframeRef }: PerformanceAnalyzerProps
             ))}
           </div>
         </Card>
-      )}
-
-      {!metrics.length && !isAnalyzing && (
-        <div className="text-center text-slate-400 py-4">
-          Click "Performance Analysis" to analyze page performance
-        </div>
       )}
     </div>
   );

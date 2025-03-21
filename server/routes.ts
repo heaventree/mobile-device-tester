@@ -50,6 +50,28 @@ interface ResourceMetric {
   url: string;
 }
 
+interface PerformanceMetric {
+  name: string;
+  value: number;
+  unit: string;
+  status: 'good' | 'warning' | 'poor';
+  recommendation?: string;
+}
+
+interface ResourceAnalysis {
+  metrics: PerformanceMetric[];
+  resources: ResourceMetric[];
+}
+
+// Schema for the performance analysis request
+const performanceAnalysisSchema = z.object({
+  url: z.string(),
+  viewport: z.object({
+    width: z.number(),
+    height: z.number()
+  }).optional()
+});
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Get projects list
   app.get("/api/projects", async (_req, res) => {
@@ -484,7 +506,7 @@ ${cssFixResponse.mediaQueries?.map(mq => `
   // Performance Analysis endpoint with enhanced URL validation
   app.post("/api/analyze-performance", async (req, res) => {
     try {
-      const { url, viewport } = req.body;
+      const { url } = performanceAnalysisSchema.parse(req.body);
 
       // Enhanced URL validation
       let validatedUrl: string;
@@ -535,20 +557,6 @@ ${cssFixResponse.mediaQueries?.map(mq => `
       const html = await response.text();
       const headers = response.headers;
 
-      // Analyze performance metrics
-      const metrics = [
-        {
-          name: 'Response Time',
-          value: response.status === 200 ? response.headers.get('cf-cache-status') === 'HIT' ? 20 : 200 : 0,
-          unit: 'ms',
-          status: response.status === 200 ? 'good' : 'poor',
-          recommendation: response.status !== 200 ? `Server returned status ${response.status}` : undefined
-        }
-      ];
-
-      // Analyze resource usage
-      const resourceMetrics: ResourceMetric[] = [];
-
       // Extract and validate resource URLs
       const urlRegex = /(src|href)=["']([^"']+)["']/g;
       const matches = html.matchAll(urlRegex);
@@ -564,7 +572,7 @@ ${cssFixResponse.mediaQueries?.map(mq => `
         });
 
       // Process resources in parallel with better error handling
-      const resourcePromises = resourceUrls.map(async (resourceUrl) => {
+      const resourcePromises = resourceUrls.map(async (resourceUrl): Promise<ResourceMetric | null> => {
         try {
           const absoluteUrl = new URL(resourceUrl, validatedUrl).toString();
 
@@ -598,28 +606,41 @@ ${cssFixResponse.mediaQueries?.map(mq => `
 
       const resourceResults = await Promise.all(resourcePromises);
       const validResources = resourceResults.filter((r): r is ResourceMetric => r !== null);
-      resourceMetrics.push(...validResources);
 
       // Calculate metrics
-      const totalSize = resourceMetrics.reduce((sum, r) => sum + r.size, 0);
-      metrics.push({
-        name: 'Total Resources Size',
-        value: Math.round(totalSize / 1024),
-        unit: 'KB',
-        status: totalSize < 1000000 ? 'good' : totalSize < 3000000 ? 'warning' : 'poor',
-        recommendation: totalSize > 1000000 ? 'Consider optimizing resource sizes and implementing lazy loading' : undefined
-      });
+      const totalSize = validResources.reduce((sum, r) => sum + r.size, 0);
+      const scriptsCount = validResources.filter(r => r.type === 'script').length;
 
-      const scriptsCount = resourceMetrics.filter(r => r.type === 'script').length;
-      metrics.push({
-        name: 'JavaScript Files',
-        value: scriptsCount,
-        unit: '',
-        status: scriptsCount < 10 ? 'good' : scriptsCount < 20 ? 'warning' : 'poor',
-        recommendation: scriptsCount > 10 ? 'Consider bundling JavaScript files to reduce HTTP requests' : undefined
-      });
+      const metrics: PerformanceMetric[] = [
+        {
+          name: 'Response Time',
+          value: response.status === 200 ? response.headers.get('cf-cache-status') === 'HIT' ? 20 : 200 : 0,
+          unit: 'ms',
+          status: response.status === 200 ? 'good' : 'poor',
+          recommendation: response.status !== 200 ? `Server returned status ${response.status}` : undefined
+        },
+        {
+          name: 'Total Resources Size',
+          value: Math.round(totalSize / 1024),
+          unit: 'KB',
+          status: totalSize < 1000000 ? 'good' : totalSize < 3000000 ? 'warning' : 'poor',
+          recommendation: totalSize > 1000000 ? 'Consider optimizing resource sizes and implementing lazy loading' : undefined
+        },
+        {
+          name: 'JavaScript Files',
+          value: scriptsCount,
+          unit: '',
+          status: scriptsCount < 10 ? 'good' : scriptsCount < 20 ? 'warning' : 'poor',
+          recommendation: scriptsCount > 10 ? 'Consider bundling JavaScript files to reduce HTTP requests' : undefined
+        }
+      ];
 
-      res.json({ metrics, resources: resourceMetrics });
+      const analysis: ResourceAnalysis = {
+        metrics,
+        resources: validResources
+      };
+
+      res.json(analysis);
     } catch (error) {
       console.error('Performance analysis error:', error);
       res.status(500).json({
