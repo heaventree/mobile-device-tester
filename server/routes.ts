@@ -7,6 +7,14 @@ import OpenAI from 'openai';
 import type { ChatCompletionMessageParam } from 'openai/resources/chat/completions';
 import fetch from 'node-fetch';
 
+// Add new interface here
+interface WordPressCSSChange {
+  page_id: number;
+  css_content: string;
+  device_type: string;
+  change_id?: number;
+}
+
 // Add color analysis types and schemas
 interface ColorPair {
   foreground: string;
@@ -841,6 +849,88 @@ Return a JSON object with this structure:
       });
     }
   });
+
+    // Add new WordPress routes here
+  app.post("/api/wordpress/apply-css", async (req, res) => {
+    try {
+      const { page_id, css_content, device_type, site_url, api_key } = req.body;
+
+      // Validate input
+      if (!page_id || !css_content || !device_type || !site_url || !api_key) {
+        return res.status(400).json({
+          success: false,
+          message: "Missing required parameters"
+        });
+      }
+
+      // Make request to WordPress site
+      const wpResponse = await fetch(`${site_url}/wp-json/device-tester/v1/css`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Device-Tester-Key': api_key
+        },
+        body: JSON.stringify({
+          page_id,
+          css_content,
+          device_type
+        })
+      });
+
+      if (!wpResponse.ok) {
+        const error = await wpResponse.text();
+        throw new Error(`WordPress API error: ${error}`);
+      }
+
+      const result = await wpResponse.json();
+      res.json(result);
+
+    } catch (error) {
+      console.error('Error applying WordPress CSS:', error);
+      res.status(500).json({
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to apply CSS changes'
+      });
+    }
+  });
+
+  app.post("/api/wordpress/revert-css/:changeId", async (req, res) => {
+    try {
+      const { changeId } = req.params;
+      const { site_url, api_key } = req.body;
+
+      if (!changeId || !site_url || !api_key) {
+        return res.status(400).json({
+          success: false,
+          message: "Missing required parameters"
+        });
+      }
+
+      const wpResponse = await fetch(`${site_url}/wp-json/device-tester/v1/css/revert/${changeId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Device-Tester-Key': api_key
+        }
+      });
+
+      if (!wpResponse.ok) {
+        const error = await wpResponse.text();
+        throw new Error(`WordPress API error: ${error}`);
+      }
+
+      const result = await wpResponse.json();
+      res.json(result);
+
+    } catch (error) {
+      console.error('Error reverting WordPress CSS:', error);
+      res.status(500).json({
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to revert CSS changes'
+      });
+    }
+  });
+
 
   const httpServer = createServer(app);
   return httpServer;

@@ -87,6 +87,22 @@ class DeviceTester {
             UNIQUE KEY api_key (api_key)
         ) $charset_collate;";
 
+        // Add new table for CSS changes
+        $sql .= "CREATE TABLE IF NOT EXISTS {$wpdb->prefix}device_tester_css_changes (
+            id mediumint(9) NOT NULL AUTO_INCREMENT,
+            page_id bigint(20) NOT NULL,
+            css_content text NOT NULL,
+            applied_at datetime DEFAULT CURRENT_TIMESTAMP,
+            applied_by bigint(20) NOT NULL,
+            status enum('active', 'reverted') DEFAULT 'active',
+            reverted_at datetime DEFAULT NULL,
+            reverted_by bigint(20) DEFAULT NULL,
+            device_type varchar(50) NOT NULL,
+            PRIMARY KEY  (id),
+            KEY page_id (page_id),
+            KEY status (status)
+        ) $charset_collate;";
+
         require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
         dbDelta($sql);
 
@@ -228,6 +244,39 @@ class DeviceTester {
             'methods' => 'POST',
             'callback' => array($this, 'register_site'),
             'permission_callback' => array($this, 'verify_api_key')
+        ));
+
+        // Add new routes for CSS management
+        register_rest_route('device-tester/v1', '/css', array(
+            'methods' => 'POST',
+            'callback' => array($this, 'handle_css_apply'),
+            'permission_callback' => array($this, 'verify_api_key'),
+            'args' => array(
+                'page_id' => array(
+                    'required' => true,
+                    'type' => 'integer'
+                ),
+                'css_content' => array(
+                    'required' => true,
+                    'type' => 'string'
+                ),
+                'device_type' => array(
+                    'required' => true,
+                    'type' => 'string'
+                )
+            )
+        ));
+
+        register_rest_route('device-tester/v1', '/css/revert/(?P<id>\d+)', array(
+            'methods' => 'POST',
+            'callback' => array($this, 'handle_css_revert'),
+            'permission_callback' => array($this, 'verify_api_key'),
+            'args' => array(
+                'id' => array(
+                    'required' => true,
+                    'type' => 'integer'
+                )
+            )
         ));
     }
 
@@ -705,6 +754,138 @@ class DeviceTester {
         register_setting('device_tester_settings', $this->api_key_option);
         register_setting('device_tester_settings', $this->connection_status_option);
         register_setting('device_tester_settings', 'device_tester_excluded_types');
+    }
+
+
+    public function apply_css_changes($page_id, $css_content, $device_type) {
+        global $wpdb;
+
+        // Insert the change record
+        $wpdb->insert(
+            $wpdb->prefix . 'device_tester_css_changes',
+            array(
+                'page_id' => $page_id,
+                'css_content' => $css_content,
+                'applied_by' => get_current_user_id(),
+                'device_type' => $device_type
+            ),
+            array('%d', '%s', '%d', '%s')
+        );
+
+        // Get the change ID
+        $change_id = $wpdb->insert_id;
+
+        // Apply the CSS
+        $this->inject_custom_css($page_id, $css_content, $device_type);
+
+        return $change_id;
+    }
+
+    public function revert_css_changes($change_id) {
+        global $wpdb;
+
+        // Get the change record
+        $change = $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM {$wpdb->prefix}device_tester_css_changes WHERE id = %d",
+            $change_id
+        ));
+
+        if (!$change) {
+            return false;
+        }
+
+        // Update the change status
+        $wpdb->update(
+            $wpdb->prefix . 'device_tester_css_changes',
+            array(
+                'status' => 'reverted',
+                'reverted_at' => current_time('mysql'),
+                'reverted_by' => get_current_user_id()
+            ),
+            array('id' => $change_id),
+            array('%s', '%s', '%d'),
+            array('%d')
+        );
+
+        // Remove the CSS
+        $this->remove_custom_css($change->page_id, $change->device_type);
+
+        return true;
+    }
+
+    private function inject_custom_css($page_id, $css_content, $device_type) {
+        // Get or create the custom CSS file
+        $upload_dir = wp_upload_dir();
+        $css_dir = $upload_dir['basedir'] . '/device-tester-css';
+
+        if (!file_exists($css_dir)) {
+            wp_mkdir_p($css_dir);
+        }
+
+        $filename = sprintf('page-%d-%s.css', $page_id, sanitize_title($device_type));
+        $filepath = $css_dir . '/' . $filename;
+
+        // Write CSS to file
+        file_put_contents($filepath, $css_content);
+
+        // Add to WordPress
+        add_action('wp_head', function() use ($upload_dir, $filename, $device_type) {
+            printf(
+                '<link rel="stylesheet" href="%s" media="(max-width: %dpx)">',
+                esc_url($upload_dir['baseurl'] . '/device-tester-css/' . $filename),
+                $this->get_device_max_width($device_type)
+            );
+        });
+    }
+
+    private function remove_custom_css($page_id, $device_type) {
+        $upload_dir = wp_upload_dir();
+        $filename = sprintf('page-%d-%s.css', $page_id, sanitize_title($device_type));
+        $filepath = $upload_dir['basedir'] . '/device-tester-css/' . $filename;
+
+        if (file_exists($filepath)) {
+            unlink($filepath);
+        }
+    }
+
+    private function get_device_max_width($device_type) {
+        // Add device-specific max-widths
+        $widths = array(
+            'mobile' => 767,
+            'tablet' => 1024,
+            'desktop' => 1920
+        );
+
+        return $widths[$device_type] ?? 1920;
+    }
+
+    public function handle_css_apply($request) {
+        $page_id = $request->get_param('page_id');
+        $css_content = $request->get_param('css_content');
+        $device_type = $request->get_param('device_type');
+
+        $change_id = $this->apply_css_changes($page_id, $css_content, $device_type);
+
+        if ($change_id) {
+            return array(
+                'success' => true,
+                'change_id' => $change_id
+            );
+        }
+
+        return new WP_Error('css_apply_failed', 'Failed to apply CSS changes');
+    }
+
+    public function handle_css_revert($request) {
+        $change_id = $request->get_param('id');
+
+        $success = $this->revert_css_changes($change_id);
+
+        if ($success) {
+            return array('success' => true);
+        }
+
+        return new WP_Error('css_revert_failed', 'Failed to revert CSS changes');
     }
 }
 
