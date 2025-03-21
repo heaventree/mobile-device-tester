@@ -386,13 +386,9 @@ Provide a brief, actionable analysis focusing on critical issues first.`
       const messages: ChatCompletionMessageParam[] = [
         {
           role: 'system',
-          content: `You are a CSS expert. Analyze HTML for styling issues focusing on:
-1. Layout problems (overlapping, overflow)
-2. Responsive design issues
-3. Spacing and alignment
-4. Visual hierarchy
-
-Return JSON array of issues:
+          content: `You are a CSS expert. Analyze HTML for styling issues and return ONLY a JSON object.
+Do not include any markdown formatting or additional text.
+The JSON must follow this exact structure:
 {
   "issues": [
     {
@@ -414,21 +410,38 @@ Viewport: ${viewportWidth}x${viewportHeight}
 
 ${html}
 
-Analyze for styling issues. Return JSON only.`
+Analyze for styling issues. Return only JSON, no markdown or additional text.`
         }
       ];
 
       const completion = await openai.chat.completions.create({
-        model: "gpt-3.5-turbo",
+        model: "gpt-4",
         messages,
         temperature: 0.7,
         max_tokens: 1000,
       });
 
-      const aiResponse = completion.choices[0].message.content;
-      const issues = JSON.parse(aiResponse || '{"issues": []}').issues;
+      let aiResponse = completion.choices[0].message.content || '{"issues": []}';
 
-      res.json(issues);
+      // Remove any markdown formatting if present
+      aiResponse = aiResponse.replace(/```json\n?|\n?```/g, '').trim();
+
+      try {
+        const issues = JSON.parse(aiResponse).issues;
+        if (!Array.isArray(issues)) {
+          throw new Error('Invalid response format: issues must be an array');
+        }
+        res.json(issues);
+      } catch (parseError) {
+        console.error('Failed to parse AI response:', parseError);
+        console.error('Raw AI response:', aiResponse);
+        return res.status(500).json({
+          success: false,
+          message: 'Failed to parse design analysis',
+          details: parseError instanceof Error ? parseError.message : 'Unknown parsing error'
+        });
+      }
+
     } catch (error) {
       console.error('Design analysis error:', error);
 
@@ -931,7 +944,7 @@ Return a JSON object with this structure:
         console.error('WordPress API request failed:', wpError);
         res.status(500).json({
           success: false,
-          message: wpError instanceof Error ? wpError.message : 'Failed to communicate with WordPress'
+          message: wpError instanceof Error? wpError.message : 'Failed to communicate with WordPress'
         });
       }
 
