@@ -226,7 +226,7 @@ export function DevicePreview({ url, device, screenSize }: DevicePreviewProps) {
         </div>
       </div>
 
-      <div 
+      <div
         ref={containerRef}
         className="relative w-full flex items-center justify-center bg-slate-900/50"
         style={{ height: '600px' }}
@@ -259,7 +259,7 @@ export function DevicePreview({ url, device, screenSize }: DevicePreviewProps) {
       </div>
 
       <div className="p-4 border-t border-slate-700 space-y-4">
-        <AITester 
+        <AITester
           url={url}
           device={screenSize}
           cssEnabled={cssPreviewEnabled}
@@ -277,7 +277,14 @@ export function DevicePreview({ url, device, screenSize }: DevicePreviewProps) {
           <CSSFixPreview
             url={url}
             device={screenSize}
-            issues={results}
+            issues={[...results, ...designIssues.map(issue => ({
+              type: 'warning',
+              title: issue.title,
+              description: issue.description,
+              element: issue.element,
+              currentCSS: issue.currentCSS,
+              suggestedFix: issue.suggestedFix
+            }))]}
             onCSSGenerated={(css) => {
               setGeneratedCSS(css);
               setCssPreviewEnabled(true);
