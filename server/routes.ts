@@ -153,7 +153,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.send(html);
     } catch (error) {
       console.error('Error fetching page:', error);
-      res.status(500).json({ 
+      res.status(500).json({
         error: 'Failed to fetch page content',
         details: error instanceof Error ? error.message : 'Unknown error'
       });
@@ -231,8 +231,8 @@ Provide a brief, actionable analysis focusing on critical issues first.`
         });
       }
 
-      res.status(500).json({ 
-        success: false, 
+      res.status(500).json({
+        success: false,
         message: 'Failed to analyze page',
         error: error instanceof Error ? error.message : 'Unknown error'
       });
@@ -258,24 +258,23 @@ Provide a brief, actionable analysis focusing on critical issues first.`
       const messages: ChatCompletionMessageParam[] = [
         {
           role: 'system',
-          content: `You are a design analysis expert. Analyze the provided HTML for design issues focusing on:
+          content: `Analyze HTML for key design issues:
 1. Overlapping elements
-2. Elements extending beyond viewport
-3. Poor spacing and alignment
-4. Contrast and readability issues
+2. Viewport overflow
+3. Spacing problems
+4. Contrast issues
 
-Format your response as an array of issues, each with:
+Return JSON array of issues:
 {
-  "type": "overlap" | "overflow" | "spacing" | "contrast",
-  "title": "Brief issue title",
-  "description": "Detailed description",
-  "element": "Affected element",
-  "bounds": {
-    "x": number,
-    "y": number,
-    "width": number,
-    "height": number
-  }
+  "issues": [
+    {
+      "type": "overlap|overflow|spacing|contrast",
+      "title": "brief title",
+      "description": "short description",
+      "element": "affected element",
+      "bounds": {"x": number, "y": number, "width": number, "height": number}
+    }
+  ]
 }`
         },
         {
@@ -283,16 +282,14 @@ Format your response as an array of issues, each with:
           content: `URL: ${url}
 Viewport: ${viewportWidth}x${viewportHeight}
 
-HTML Content:
 ${html}
 
-Analyze this page for design issues. Focus on critical visual problems that affect usability and aesthetics.
-Return a JSON array of issues with precise coordinates for visual overlay.`
+Analyze for design issues. Return JSON only.`
         }
       ];
 
       const completion = await openai.chat.completions.create({
-        model: "gpt-4",
+        model: "gpt-3.5-turbo",
         messages,
         temperature: 0.7,
         max_tokens: 1000,
@@ -322,8 +319,8 @@ Return a JSON array of issues with precise coordinates for visual overlay.`
         });
       }
 
-      res.status(500).json({ 
-        success: false, 
+      res.status(500).json({
+        success: false,
         message: 'Failed to analyze design',
         error: error instanceof Error ? error.message : 'Unknown error'
       });
@@ -466,8 +463,8 @@ ${cssFixResponse.mediaQueries?.map(mq => `
         statusCode = error.status || 500;
       }
 
-      res.status(statusCode).json({ 
-        success: false, 
+      res.status(statusCode).json({
+        success: false,
         message: errorMessage,
         details: error instanceof Error ? error.message : 'Unknown error'
       });

@@ -45,19 +45,26 @@ export function DesignScanner({ url, iframeRef, onIssuesFound }: DesignScannerPr
       // Create a simplified version of the HTML for analysis
       const mainContent = doc.body.cloneNode(true) as HTMLElement;
 
-      // Remove scripts and styles to reduce size
-      mainContent.querySelectorAll('script, style, link').forEach(el => el.remove());
+      // Remove non-layout elements to reduce size
+      mainContent.querySelectorAll('script, style, link, meta, svg, img, video, audio, iframe, noscript').forEach(el => el.remove());
 
-      // Remove large inline styles and data attributes
+      // Remove text content from elements to focus on structure
+      mainContent.querySelectorAll('*').forEach(el => {
+        if (el.childNodes.length === 1 && el.firstChild?.nodeType === Node.TEXT_NODE) {
+          el.textContent = 'text';
+        }
+      });
+
+      // Remove all attributes except class, id, and basic layout properties
       mainContent.querySelectorAll('*').forEach(el => {
         Array.from(el.attributes).forEach(attr => {
-          if (attr.name.startsWith('data-') || attr.name === 'style') {
+          if (!['class', 'id', 'width', 'height'].includes(attr.name)) {
             el.removeAttribute(attr.name);
           }
         });
       });
 
-      const simplifiedHtml = mainContent.outerHTML;
+      const simplifiedHtml = mainContent.outerHTML.substring(0, 8000); // Limit content size
       const viewportWidth = doc.documentElement.clientWidth;
       const viewportHeight = doc.documentElement.clientHeight;
 
@@ -129,7 +136,7 @@ export function DesignScanner({ url, iframeRef, onIssuesFound }: DesignScannerPr
 
       <div className="space-y-2">
         {issues.map((issue, index) => (
-          <Alert 
+          <Alert
             key={index}
             variant={issue.type === 'overflow' ? 'destructive' : 'default'}
             className="bg-slate-800/50 border-slate-700"
