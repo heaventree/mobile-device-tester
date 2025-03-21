@@ -706,6 +706,13 @@ ${cssFixResponse.mediaQueries?.map(mq => `
 
   // Color Analysis endpoint
   app.post("/api/analyze-colors", async (req, res) => {
+    if (!process.env.OPENAI_API_KEY) {
+      return res.status(503).json({
+        error: 'Service unavailable',
+        details: 'Color analysis is currently unavailable'
+      });
+    }
+
     try {
       const { url } = colorAnalysisSchema.parse(req.body);
 
@@ -714,16 +721,42 @@ ${cssFixResponse.mediaQueries?.map(mq => `
       try {
         const urlToValidate = url.startsWith('http') ? url : `https://${url}`;
         const urlObj = new URL(urlToValidate);
+
+        // Check for valid domain format (must have at least one dot and valid TLD)
+        const parts = urlObj.hostname.split('.');
+        if (parts.length < 2 || parts[parts.length - 1].length < 2) {
+          return res.status(400).json({
+            error: 'Invalid domain format',
+            details: 'Please provide a complete domain with TLD (e.g., example.com, website.org)'
+          });
+        }
+
         validatedUrl = urlObj.toString();
       } catch (error) {
         return res.status(400).json({
           error: 'Invalid URL format',
-          details: 'Please enter a valid website URL'
+          details: 'Please enter a valid website URL (e.g., https://example.com or www.example.com)'
         });
       }
 
       // Fetch the page
-      const response = await fetch(validatedUrl);
+      let response;
+      try {
+        response = await fetch(validatedUrl);
+      } catch (error) {
+        return res.status(400).json({
+          error: 'Failed to fetch page',
+          details: `Could not connect to ${validatedUrl}. Please verify the website is accessible.`
+        });
+      }
+
+      if (!response.ok) {
+        return res.status(400).json({
+          error: 'Failed to fetch page',
+          details: `Server returned status ${response.status}. Please verify the URL is correct and the website is accessible.`
+        });
+      }
+
       const html = await response.text();
 
       // Use OpenAI to analyze colors and generate suggestions
@@ -765,6 +798,7 @@ Return a JSON object with this structure:
         }
       ];
 
+      console.log('Sending request to OpenAI for color analysis...');
       const completion = await openai.chat.completions.create({
         model: "gpt-4",
         messages,
@@ -772,7 +806,27 @@ Return a JSON object with this structure:
         response_format: { type: "json_object" }
       });
 
-      const aiAnalysis = JSON.parse(completion.choices[0].message.content || '{}');
+      const aiResponse = completion.choices[0].message.content;
+      console.log('Received OpenAI response:', aiResponse);
+
+      let aiAnalysis;
+      try {
+        aiAnalysis = JSON.parse(aiResponse || '{}');
+        // Validate the response structure
+        if (!aiAnalysis.dominantColors || !Array.isArray(aiAnalysis.dominantColors)) {
+          throw new Error('Invalid AI response: missing or invalid dominantColors array');
+        }
+        if (!aiAnalysis.colorPairs || !Array.isArray(aiAnalysis.colorPairs)) {
+          throw new Error('Invalid AI response: missing or invalid colorPairs array');
+        }
+      } catch (error) {
+        console.error('Failed to parse AI response:', error);
+        console.error('Raw AI response:', aiResponse);
+        return res.status(500).json({
+          error: 'Analysis failed',
+          details: 'Failed to process color analysis results'
+        });
+      }
 
       // Validate and enhance AI analysis
       const colorAnalysis: ColorAnalysis = {
@@ -793,9 +847,25 @@ Return a JSON object with this structure:
 
     } catch (error) {
       console.error('Color analysis error:', error);
+
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({
+          error: 'Invalid request format',
+          details: 'Please provide a valid URL for analysis'
+        });
+      }
+
+      if (error instanceof OpenAI.APIError) {
+        console.error('OpenAI API error:', error);
+        return res.status(error.status || 500).json({
+          error: 'Analysis failed',
+          details: 'Failed to analyze colors. Please try again later.'
+        });
+      }
+
       res.status(500).json({
-        error: 'Failed to analyze colors',
-        details: error instanceof Error ? error.message : 'Unknown error'
+        error: 'Analysis failed',
+        details: error instanceof Error ? error.message : 'Unknown error occurred'
       });
     }
   });

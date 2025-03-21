@@ -37,7 +37,7 @@ export function ColorAnalyzer({ url, iframeRef }: ColorAnalyzerProps) {
 
   const analyzeColors = async () => {
     if (!url) {
-      setError('Please enter a website URL to analyze');
+      setError('Please enter a URL to analyze');
       return;
     }
 
@@ -46,6 +46,7 @@ export function ColorAnalyzer({ url, iframeRef }: ColorAnalyzerProps) {
     setAnalysis(null);
 
     try {
+      console.log('Initiating color analysis for:', url);
       const response = await apiRequest('POST', '/api/analyze-colors', {
         url,
         viewport: {
@@ -56,10 +57,28 @@ export function ColorAnalyzer({ url, iframeRef }: ColorAnalyzerProps) {
 
       if (!response.ok) {
         const data = await response.json();
+        console.error('Color analysis API error:', data);
         throw new Error(data.details?.split('.')[0] || 'Unable to analyze colors');
       }
 
-      const colorAnalysis = await response.json();
+      let colorAnalysis: ColorAnalysis;
+      try {
+        const rawResponse = await response.json();
+        console.log('Raw color analysis response:', rawResponse);
+
+        // Validate response structure
+        if (!rawResponse.dominantColors || !Array.isArray(rawResponse.dominantColors)) {
+          throw new Error('Invalid response format: missing dominant colors');
+        }
+        if (!rawResponse.colorPairs || !Array.isArray(rawResponse.colorPairs)) {
+          throw new Error('Invalid response format: missing color pairs');
+        }
+        colorAnalysis = rawResponse;
+      } catch (parseError) {
+        console.error('JSON parsing error:', parseError);
+        throw new Error('Failed to parse color analysis results');
+      }
+
       setAnalysis(colorAnalysis);
 
     } catch (error) {
