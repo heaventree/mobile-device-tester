@@ -22,64 +22,70 @@ class ProgressManager {
   async initialize(): Promise<void> {
     try {
       const response = await apiRequest('GET', '/api/user/progress');
-
-      // Check if response is OK and has the correct content type
       if (!response.ok) {
         throw new Error(`Failed to fetch progress: ${response.status}`);
       }
 
-      const contentType = response.headers.get('content-type');
-      if (!contentType || !contentType.includes('application/json')) {
-        throw new Error('Invalid response format: expected JSON');
-      }
-
       const data = await response.json();
-      this.progress = data;
+
+      // Ensure we have a valid data structure even if the response is incomplete
+      this.progress = {
+        stats: {
+          sitesAnalyzed: data?.stats?.sitesAnalyzed ?? 0,
+          testsRun: data?.stats?.testsRun ?? 0,
+          issuesFixed: data?.stats?.issuesFixed ?? 0,
+          perfectScores: data?.stats?.perfectScores ?? 0
+        },
+        achievements: data?.achievements ?? [],
+        totalPoints: data?.totalPoints ?? 0,
+        level: data?.level ?? 1,
+        lastActive: new Date(data?.lastActive || Date.now())
+      };
     } catch (error) {
       console.error('Failed to initialize progress:', error);
       // Set default progress instead of throwing
       this.progress = {
-        stats: {},
+        stats: {
+          sitesAnalyzed: 0,
+          testsRun: 0,
+          issuesFixed: 0,
+          perfectScores: 0
+        },
         achievements: [],
         totalPoints: 0,
         level: 1,
-        lastActive: new Date().toISOString()
+        lastActive: new Date()
       };
     }
   }
 
-  async updateMetric(metric: string, value: number = 1): Promise<void> {
+  async updateMetric(metric: keyof UserProgress['stats'], value: number = 1): Promise<void> {
     if (!this.progress) {
       await this.initialize();
     }
 
     try {
-      // Update local stats
-      const stats = { ...this.progress!.stats };
-      const updatedStat = (stats[metric as keyof typeof stats] || 0) + value;
-      stats[metric as keyof typeof stats] = updatedStat;
-
-      // Prepare update payload
-      const update = {
-        stats,
-        lastActive: new Date().toISOString()
+      const stats = {
+        ...this.progress!.stats,
+        [metric]: (this.progress!.stats[metric] || 0) + value
       };
 
-      // Send update to server
-      const response = await apiRequest('PATCH', '/api/user/progress', update);
+      const update = {
+        stats,
+        lastActive: new Date()
+      };
 
+      const response = await apiRequest('PATCH', '/api/user/progress', update);
       if (!response.ok) {
         throw new Error('Failed to update progress');
       }
 
-      const contentType = response.headers.get('content-type');
-      if (!contentType || !contentType.includes('application/json')) {
-        throw new Error('Invalid response format: expected JSON');
-      }
-
-      const updatedProgress = await response.json();
-      this.progress = updatedProgress;
-
+      const data = await response.json();
+      this.progress = {
+        ...this.progress!,
+        stats: data.stats,
+        lastActive: new Date(data.lastActive)
+      };
     } catch (error) {
       console.error('Failed to update progress:', error);
       // Don't throw, just log the error
