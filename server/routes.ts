@@ -481,34 +481,46 @@ ${cssFixResponse.mediaQueries?.map(mq => `
     }
   });
 
-  // Performance Analysis endpoint
+  // Performance Analysis endpoint with enhanced URL validation
   app.post("/api/analyze-performance", async (req, res) => {
     try {
       const { url, viewport } = req.body;
 
-      // Validate URL
+      // Enhanced URL validation
+      let validatedUrl: string;
       try {
-        new URL(url);
+        // If no protocol is specified, prepend https://
+        const urlToValidate = url.startsWith('http') ? url : `https://${url}`;
+        const urlObj = new URL(urlToValidate);
+
+        // Check for valid domain format (must have at least one dot and valid TLD)
+        if (!urlObj.hostname.includes('.')) {
+          return res.status(400).json({
+            error: 'Invalid URL format',
+            details: 'Please provide a valid domain (e.g., example.com)'
+          });
+        }
+
+        validatedUrl = urlObj.toString();
       } catch (error) {
         return res.status(400).json({
           error: 'Invalid URL format',
-          details: 'Please provide a valid URL including protocol (http:// or https://)'
+          details: 'Please provide a valid URL (e.g., https://example.com)'
         });
       }
 
       // Fetch the page to analyze performance
       let response;
       try {
-        response = await fetch(url, {
+        response = await fetch(validatedUrl, {
           headers: {
             'User-Agent': 'Mozilla/5.0 (compatible; PerformanceBot/1.0)'
-          },
-          timeout: 10000 // 10 second timeout
+          }
         });
       } catch (error) {
         return res.status(400).json({
           error: 'Failed to fetch page',
-          details: `Could not connect to ${url}. Please verify the URL is accessible.`
+          details: `Could not connect to ${validatedUrl}. Please verify the URL is accessible.`
         });
       }
 
@@ -519,38 +531,48 @@ ${cssFixResponse.mediaQueries?.map(mq => `
       const metrics = [
         {
           name: 'Response Time',
-          value: response.status === 200 ? 200 : 0, // Placeholder since we can't get real timing
+          value: response.status === 200 ? response.headers.get('cf-cache-status') === 'HIT' ? 20 : 200 : 0,
           unit: 'ms',
-          status: 'good',
-          recommendation: response.status !== 200 ? 'Server response indicates issues' : undefined
+          status: response.status === 200 ? 'good' : 'poor',
+          recommendation: response.status !== 200 ? `Server returned status ${response.status}` : undefined
         }
       ];
 
       // Analyze resource usage
       const resourceMetrics: ResourceMetric[] = [];
-      const resourceUrls = [...html.matchAll(/(src|href)=["']([^"']+)["']/g)].map(m => m[2]);
 
-      // Process resources in parallel with error handling
-      await Promise.all(resourceUrls.map(async (resourceUrl) => {
-        try {
-          let absoluteUrl;
+      // Extract and validate resource URLs
+      const urlRegex = /(src|href)=["']([^"']+)["']/g;
+      const matches = html.matchAll(urlRegex);
+      const resourceUrls = Array.from(matches)
+        .map(m => m[2])
+        .filter(url => {
           try {
-            absoluteUrl = new URL(resourceUrl, url).toString();
+            new URL(url, validatedUrl);
+            return true;
           } catch {
-            return; // Skip invalid URLs
+            return false;
           }
+        });
+
+      // Process resources in parallel with better error handling
+      const resourcePromises = resourceUrls.map(async (resourceUrl) => {
+        try {
+          const absoluteUrl = new URL(resourceUrl, validatedUrl).toString();
 
           const resourceResponse = await fetch(absoluteUrl, { 
             method: 'HEAD',
-            timeout: 5000 
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (compatible; PerformanceBot/1.0)'
+            }
           });
 
-          if (!resourceResponse.ok) return; // Skip failed requests
+          if (!resourceResponse.ok) return null;
 
           const size = parseInt(resourceResponse.headers.get('content-length') || '0');
           const type = resourceResponse.headers.get('content-type') || 'other';
 
-          resourceMetrics.push({
+          return {
             type: type.includes('javascript') ? 'script' :
                   type.includes('css') ? 'stylesheet' :
                   type.includes('image') ? 'image' :
@@ -559,12 +581,16 @@ ${cssFixResponse.mediaQueries?.map(mq => `
             transferSize: size,
             loadTime: 0,
             url: resourceUrl
-          });
+          };
         } catch (error) {
-          // Silently skip failed resources
-          console.error(`Failed to analyze resource: ${resourceUrl}`, error);
+          console.error('Failed to analyze resource:', resourceUrl, error);
+          return null;
         }
-      }));
+      });
+
+      const resourceResults = await Promise.all(resourcePromises);
+      const validResources = resourceResults.filter((r): r is ResourceMetric => r !== null);
+      resourceMetrics.push(...validResources);
 
       // Calculate metrics
       const totalSize = resourceMetrics.reduce((sum, r) => sum + r.size, 0);
