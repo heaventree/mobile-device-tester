@@ -182,6 +182,51 @@ function usePerformanceMonitoring() {
 }
 ```
 
+### Automated Performance Checks
+```typescript
+// Example performance test setup
+describe('Performance Tests', () => {
+  it('loads main components within threshold', async () => {
+    const start = performance.now();
+    render(<MainComponent />);
+    const end = performance.now();
+
+    expect(end - start).toBeLessThan(100); // 100ms threshold
+  });
+});
+```
+
+### Load Testing
+```typescript
+// Example load test configuration
+const loadTest = {
+  vus: 10,
+  duration: '30s',
+  thresholds: {
+    http_req_duration: ['p(95)<500'],
+    http_req_failed: ['rate<0.01']
+  }
+};
+```
+
+### Memory Leak Detection
+```typescript
+// Example memory leak test
+class MemoryTest {
+  static async checkMemoryUsage() {
+    const initialMemory = process.memoryUsage();
+
+    // Run operations
+
+    const finalMemory = process.memoryUsage();
+    expect(finalMemory.heapUsed - initialMemory.heapUsed)
+      .toBeLessThan(1000000); // 1MB threshold
+  }
+}
+```
+
+Remember to adapt these testing strategies based on your project's specific needs.
+
 ## Accessibility Testing
 
 ### Automated Tests

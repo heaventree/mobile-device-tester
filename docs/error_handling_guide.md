@@ -211,3 +211,166 @@ function logError(error: Error, context?: string) {
 10. Document error patterns
 
 Remember to adapt these patterns based on your specific use case and requirements.
+
+## AI-Powered Debugging
+
+### 1. Automated Error Detection
+```typescript
+// Implement AI-driven error tracking
+const errorTracker = {
+  async analyzeError(error: Error, context: string) {
+    return await aiAnalyze({
+      error: error.message,
+      stack: error.stack,
+      context,
+      timestamp: new Date().toISOString()
+    });
+  }
+};
+```
+
+### 2. Self-Healing Mechanisms
+```typescript
+// Implement automatic recovery strategies
+class AutoRecovery {
+  static async attemptRecovery(operation: () => Promise<any>, maxRetries = 3) {
+    for (let i = 0; i < maxRetries; i++) {
+      try {
+        return await operation();
+      } catch (error) {
+        if (i === maxRetries - 1) throw error;
+        await new Promise(resolve => setTimeout(resolve, Math.pow(2, i) * 1000));
+      }
+    }
+  }
+}
+```
+
+### 3. Proactive Monitoring
+```typescript
+// Set up real-time performance monitoring
+const performanceMonitor = {
+  trackMetric(name: string, value: number) {
+    const timestamp = Date.now();
+    console.debug(`[${name}] ${value}ms at ${new Date(timestamp).toISOString()}`);
+    // Add to monitoring system
+  }
+};
+```
+
+## Lean Architecture
+
+### 1. Code Optimization
+```typescript
+// Example of optimized imports
+import { useCallback, memo } from 'react';
+import type { FC } from 'react';
+
+// Use memo for pure components
+const OptimizedComponent: FC = memo(({ prop }) => {
+  const handler = useCallback(() => {
+    // Handler logic
+  }, []);
+
+  return <div onClick={handler}>{prop}</div>;
+});
+```
+
+### 2. Resource Management
+```typescript
+// Implement resource cleanup
+useEffect(() => {
+  const cleanup = setupResource();
+  return () => {
+    cleanup();
+    performanceMonitor.trackMetric('resource-cleanup', Date.now());
+  };
+}, []);
+```
+
+### 3. State Management
+```typescript
+// Efficient state updates
+const [state, setState] = useState<CacheState>({
+  data: null,
+  timestamp: null
+});
+
+const updateState = useCallback((newData: any) => {
+  setState(prev => ({
+    ...prev,
+    data: newData,
+    timestamp: Date.now()
+  }));
+}, []);
+```
+
+## Additional Guidelines
+
+1. Always prioritize performance without sacrificing maintainability
+2. Use type-safe operations throughout the codebase
+3. Implement proper error boundaries and fallbacks
+4. Add comprehensive logging for debugging
+5. Maintain consistent error handling patterns
+
+
+## Security and Authentication
+
+### OAuth Implementation
+```typescript
+class AuthManager {
+  private static validateToken(token: string): boolean {
+    // Token validation logic
+    return true;
+  }
+
+  static async authenticate(req: Request, res: Response, next: NextFunction) {
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token || !this.validateToken(token)) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    next();
+  }
+}
+```
+
+### Enhanced Logging
+```typescript
+class Logger {
+  static log(level: 'info' | 'warn' | 'error', message: string, context?: any) {
+    const timestamp = new Date().toISOString();
+    console.log(JSON.stringify({
+      timestamp,
+      level,
+      message,
+      context,
+      environment: process.env.NODE_ENV
+    }));
+  }
+}
+```
+
+### Self-Healing Mechanisms
+```typescript
+class SystemHealth {
+  static async monitor() {
+    setInterval(async () => {
+      try {
+        await this.checkSystemHealth();
+      } catch (error) {
+        await this.attemptRecovery();
+      }
+    }, 5000);
+  }
+
+  private static async checkSystemHealth() {
+    // Health check implementation
+  }
+
+  private static async attemptRecovery() {
+    // Recovery logic
+  }
+}
+```
+
+Remember to adapt these patterns based on your specific security requirements and use cases.

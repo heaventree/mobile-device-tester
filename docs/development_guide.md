@@ -1,202 +1,164 @@
 # Development Guide: Cross-Platform Web Testing Application
 
 ## Table of Contents
-1. [Project Architecture](#project-architecture)
-2. [Development Workflow](#development-workflow)
-3. [Error Handling Strategy](#error-handling-strategy)
-4. [UI/UX Best Practices](#uiux-best-practices)
-5. [Code Organization](#code-organization)
-6. [Testing and Quality Assurance](#testing-and-quality-assurance)
-7. [Milestone Planning](#milestone-planning)
-8. [Performance Optimization](#performance-optimization)
+1. [Core Architecture](#core-architecture)
+2. [Development Principles](#development-principles)
+3. [Token Efficiency](#token-efficiency)
+4. [Build & Deployment](#build-deployment)
+5. [Future Enhancements](#future-enhancements)
+6. [Documentation Standards](#documentation-standards)
 
-## Project Architecture
+## Core Architecture
 
-### Core Technologies
-- Frontend: React + TypeScript
-- Styling: Tailwind CSS + shadcn/ui
-- State Management: TanStack Query
-- Backend: Express + Node.js
-- API Integration: OpenAI, WordPress REST API
-- Testing: Real-time device simulation
+### Technology Stack
+- Frontend: React with TypeScript
+- Bundler: Vite (optimized for speed)
+- Styling: Tailwind CSS & PostCSS
+- State Management: Zustand + React Context API
+- APIs: OpenAI, Stripe, GraphQL integration
+- Testing: Jest, React Testing Library
+- Deployment: Netlify via Vite builds
+- Storage: LocalForage with IndexedDB
 
-### File Structure
-```
-├── client/
-│   ├── src/
-│   │   ├── components/
-│   │   │   ├── ui/           # Reusable UI components
-│   │   │   └── [feature]/    # Feature-specific components
-│   │   ├── hooks/            # Custom React hooks
-│   │   ├── lib/              # Utility functions
-│   │   └── pages/           # Route components
-├── server/
-│   ├── routes/              # API endpoints
-│   ├── test-data/          # Mock data for testing
-│   └── storage/            # Data persistence layer
-└── shared/                 # Shared types and utilities
-```
+### Development Principles
 
-## Development Workflow
+#### Lean Architecture & Token Efficiency
+- Minimal Codebase: Prioritize modularity and reusability
+- Efficient State Management: Zustand for streamlined state
+- Fast Builds: Utilize Vite's tree-shaking
+- Automated Cleanup: Regular audits of unused components
+- Intelligent API Interaction: Smart caching strategies
 
-### Setting Up New Features
-1. Define types in `shared/schema.ts`
-2. Implement backend routes
-3. Create UI components
-4. Add error handling and validation
-5. Implement real-time updates
-6. Add progress tracking
-
-### Error Prevention Strategy
-1. Use TypeScript for type safety
-2. Implement Zod schemas for runtime validation
-3. Add comprehensive error boundaries
-4. Use React Query for API state management
-5. Implement proper CORS handling
-
-### Error Handling Examples
+#### Persistent Storage & Data Integrity
 ```typescript
-// API Error Handling Pattern
-try {
-  const response = await apiRequest('POST', '/api/endpoint', data);
-  if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(errorData.message);
+// Example LocalForage Configuration
+import localforage from 'localforage';
+
+const store = localforage.createInstance({
+  name: 'appStorage',
+  storeName: 'mainCache',
+  description: 'Application data store'
+});
+
+// Automated sync mechanism
+class StorageSync {
+  private static syncInterval = 5000;
+
+  static startAutoSync() {
+    setInterval(async () => {
+      await this.syncWithServer();
+    }, this.syncInterval);
   }
-  return await response.json();
-} catch (error) {
-  console.error('API Error:', error);
-  toast({
-    title: "Error",
-    description: error instanceof Error ? error.message : 'An unknown error occurred',
-    variant: "destructive"
-  });
 }
 ```
 
-## UI/UX Best Practices
-
-### Component Design
-1. Use shadcn/ui components for consistency
-2. Implement responsive layouts
-3. Add loading states and error feedback
-4. Use motion for smooth transitions
-
-### Styling Guidelines
-1. Use Tailwind CSS utility classes
-2. Follow mobile-first approach
-3. Implement dark mode support
-4. Use CSS gradients for emphasis
-
-### Gradient Examples
-```css
-/* Button Gradients */
-.gradient-primary {
-  @apply bg-gradient-to-r from-indigo-600 to-purple-600 
-         hover:from-indigo-700 hover:to-purple-700;
-}
-
-/* Text Gradients */
-.gradient-text {
-  @apply bg-clip-text text-transparent 
-         bg-gradient-to-r from-purple-400 to-pink-600;
-}
-```
-
-## Code Organization
-
-### Component Structure
+#### Security & Stability
 ```typescript
-// Component Template
-interface ComponentProps {
-  // Props interface
-}
+// Example API Security Configuration
+const securityMiddleware = {
+  validateToken: async (token: string) => {
+    // Token validation logic
+  },
 
-export function Component({ prop1, prop2 }: ComponentProps) {
-  // State management
-  const [state, setState] = useState();
+  encryptLocalData: (data: any) => {
+    // Local data encryption
+  }
+};
+```
 
-  // Effects
-  useEffect(() => {
-    // Side effects
-  }, [dependencies]);
+### Build & Deployment Workflow
 
-  // Event handlers
-  const handleEvent = () => {
-    // Event logic
-  };
+#### Development Commands
+```bash
+# Development
+npm run dev       # Start development server
 
-  // Render
-  return (
-    <div>
-      {/* Component JSX */}
-    </div>
-  );
+# Build
+npm run build    # Production build
+npm run lint     # Run ESLint checks
+npm run test     # Run test suite
+
+# Deployment
+npm run deploy   # Deploy to Netlify
+```
+
+#### Environment Configuration
+```typescript
+// Example .env structure
+VITE_API_URL=http://localhost:3000
+VITE_API_KEY=your_api_key
+VITE_ENVIRONMENT=development
+```
+
+### Documentation & Maintenance
+
+#### Setup Procedures
+1. Environment configuration
+2. API key management
+3. Database connection setup
+4. Local development setup
+
+#### Package Management
+```json
+{
+  "scripts": {
+    "update-deps": "npm update",
+    "audit": "npm audit fix",
+    "clean": "rm -rf node_modules"
+  }
 }
 ```
 
-### Code Style
-- Use Prettier for consistent formatting
-- Follow ESLint rules
-- Use meaningful variable names
-- Add JSDoc comments for complex functions
+### Future Enhancements & Scalability
 
-## Testing and Quality Assurance
+#### Migration Strategies
+```typescript
+// Example Database Migration
+class DatabaseMigration {
+  static async migrate() {
+    await db.migrate.latest();
+  }
 
-### Testing Strategy
-1. Component testing with React Testing Library
-2. API endpoint testing
-3. End-to-end testing
-4. Performance testing
-5. Cross-browser testing
-6. Mobile device testing
+  static async rollback() {
+    await db.migrate.rollback();
+  }
+}
+```
 
-### Quality Checks
-- TypeScript compilation
-- ESLint validation
-- Prettier formatting
-- Bundle size analysis
-- Lighthouse scores
-- Accessibility checks
+#### Feature Integration
+```typescript
+// Example Feature Flag System
+const featureFlags = {
+  enableNewFeature: process.env.ENABLE_NEW_FEATURE === 'true',
+  betaFeatures: process.env.BETA_FEATURES?.split(',') || []
+};
+```
 
-## Milestone Planning
+### Best Practices
 
-### Milestone Structure
-1. Core functionality
-2. Enhanced features
-3. Performance optimization
-4. User experience improvements
-5. Testing and bug fixes
-6. Documentation
+#### Code Quality
+1. Use TypeScript strict mode
+2. Implement comprehensive testing
+3. Follow accessibility guidelines
+4. Maintain proper documentation
+5. Regular dependency updates
 
-### Progress Tracking
-- Use GitHub Projects for task management
-- Implement automated changelog generation
-- Track user feedback and bug reports
-- Monitor performance metrics
+#### Performance
+1. Implement lazy loading
+2. Optimize bundle size
+3. Use proper caching
+4. Monitor performance metrics
+5. Regular performance audits
 
-## Performance Optimization
+#### Security
+1. Regular security audits
+2. Input validation
+3. CORS configuration
+4. API rate limiting
+5. Error handling
 
-### Frontend Optimization
-1. Code splitting
-2. Lazy loading
-3. Image optimization
-4. Caching strategies
-5. Bundle size reduction
+Remember to adapt these guidelines based on specific project requirements and team preferences.
 
-### Backend Optimization
-1. Request caching
-2. Database query optimization
-3. Rate limiting
-4. Error handling
-5. Logging and monitoring
-
-### Monitoring and Analytics
-1. Performance metrics
-2. Error tracking
-3. User behavior analytics
-4. API usage monitoring
-5. Resource utilization
 
 ## Security Best Practices
 
