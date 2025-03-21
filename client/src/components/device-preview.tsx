@@ -10,6 +10,7 @@ import { AITester } from './ai-tester';
 import { CSSFixPreview } from './css-fix-preview';
 import { DesignScanner } from './design-scanner';
 import type { DesignIssue } from './design-scanner';
+import { PerformanceAnalyzer } from './performance-analyzer';
 
 interface DevicePreviewProps {
   url: string;
@@ -290,6 +291,12 @@ export function DevicePreview({ url, device, screenSize }: DevicePreviewProps) {
               setCssPreviewEnabled(true);
               updateIframeContent();
             }}
+          />
+        </div>
+        <div className="mt-4 pt-4 border-t border-slate-700">
+          <PerformanceAnalyzer
+            url={url}
+            iframeRef={iframeRef}
           />
         </div>
       </div>

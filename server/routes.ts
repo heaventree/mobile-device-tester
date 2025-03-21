@@ -42,6 +42,14 @@ const aiAnalysisSchema = z.object({
   }))
 });
 
+interface ResourceMetric {
+  type: 'script' | 'stylesheet' | 'image' | 'font' | 'other';
+  size: number;
+  transferSize: number;
+  loadTime: number;
+  url: string;
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Get projects list
   app.get("/api/projects", async (_req, res) => {
@@ -468,6 +476,88 @@ ${cssFixResponse.mediaQueries?.map(mq => `
       res.status(statusCode).json({
         success: false,
         message: errorMessage,
+        details: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  // Performance Analysis endpoint
+  app.post("/api/analyze-performance", async (req, res) => {
+    try {
+      const { url, viewport } = req.body;
+
+      // Fetch the page to analyze performance
+      const response = await fetch(url, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (compatible; PerformanceBot/1.0)'
+        }
+      });
+
+      const html = await response.text();
+      const headers = response.headers;
+      const timing = response.timing || {};
+
+      // Analyze performance metrics
+      const metrics = [
+        {
+          name: 'Response Time',
+          value: timing.end - timing.start || 0,
+          unit: 'ms',
+          status: timing.end - timing.start < 1000 ? 'good' : timing.end - timing.start < 3000 ? 'warning' : 'poor',
+          recommendation: timing.end - timing.start > 1000 ? 'Consider implementing caching or optimizing server response time' : undefined
+        }
+      ];
+
+      // Analyze resource usage
+      const resourceMetrics: ResourceMetric[] = [];
+      const resourceUrls = [...html.matchAll(/(src|href)=["']([^"']+)["']/g)].map(m => m[2]);
+
+      for (const resourceUrl of resourceUrls) {
+        try {
+          const absoluteUrl = new URL(resourceUrl, url).toString();
+          const resourceResponse = await fetch(absoluteUrl, { method: 'HEAD' });
+          const size = parseInt(resourceResponse.headers.get('content-length') || '0');
+          const type = resourceResponse.headers.get('content-type') || 'other';
+
+          resourceMetrics.push({
+            type: type.includes('javascript') ? 'script' :
+                  type.includes('css') ? 'stylesheet' :
+                  type.includes('image') ? 'image' :
+                  type.includes('font') ? 'font' : 'other',
+            size,
+            transferSize: size,
+            loadTime: 0, // This would require real browser metrics
+            url: resourceUrl
+          });
+        } catch (error) {
+          console.error(`Failed to analyze resource: ${resourceUrl}`, error);
+        }
+      }
+
+      // Add more performance metrics based on collected data
+      const totalSize = resourceMetrics.reduce((sum, r) => sum + r.size, 0);
+      metrics.push({
+        name: 'Total Resources Size',
+        value: Math.round(totalSize / 1024),
+        unit: 'KB',
+        status: totalSize < 1000000 ? 'good' : totalSize < 3000000 ? 'warning' : 'poor',
+        recommendation: totalSize > 1000000 ? 'Consider optimizing resource sizes and implementing lazy loading' : undefined
+      });
+
+      const scriptsCount = resourceMetrics.filter(r => r.type === 'script').length;
+      metrics.push({
+        name: 'JavaScript Files',
+        value: scriptsCount,
+        unit: '',
+        status: scriptsCount < 10 ? 'good' : scriptsCount < 20 ? 'warning' : 'poor',
+        recommendation: scriptsCount > 10 ? 'Consider bundling JavaScript files to reduce HTTP requests' : undefined
+      });
+
+      res.json({ metrics, resources: resourceMetrics });
+    } catch (error) {
+      console.error('Performance analysis error:', error);
+      res.status(500).json({
+        error: 'Failed to analyze performance',
         details: error instanceof Error ? error.message : 'Unknown error'
       });
     }
