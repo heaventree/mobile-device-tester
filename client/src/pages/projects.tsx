@@ -1,6 +1,7 @@
 import React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { 
   Table, 
@@ -13,6 +14,7 @@ import {
 import { Loader2, AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AddSiteDialog } from "@/components/add-site-dialog";
+import { ProjectDetailsDialog } from "@/components/project-details-dialog";
 
 type Project = {
   id: string;
@@ -110,9 +112,14 @@ export default function Projects() {
                   {new Date(project.createdAt).toLocaleDateString()}
                 </TableCell>
                 <TableCell>
-                  <Button variant="outline" size="sm">
-                    View Details
-                  </Button>
+                  <ProjectDetailsDialog 
+                    project={project}
+                    trigger={
+                      <Button variant="outline" size="sm">
+                        View Details
+                      </Button>
+                    }
+                  />
                 </TableCell>
               </TableRow>
             ))}
