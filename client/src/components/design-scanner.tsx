@@ -1,7 +1,7 @@
 import React from 'react';
 import { Card } from '@/components/ui/card';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import { Loader2, AlertCircle, CheckCircle, Layout, Type, Move, Maximize } from 'lucide-react';
+import { Loader2, AlertCircle, Layout, Type, Move, Maximize } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { apiRequest } from '@/lib/queryClient';
 
@@ -27,80 +27,43 @@ interface DesignScannerProps {
 export function DesignScanner({ url, iframeRef, onIssuesFound }: DesignScannerProps) {
   const [isScanning, setIsScanning] = React.useState(false);
   const [issues, setIssues] = React.useState<DesignIssue[]>([]);
+  const [error, setError] = React.useState<string | null>(null);
 
   const scanForDesignIssues = async () => {
-    if (!iframeRef.current) return;
-    
+    if (!iframeRef.current) {
+      setError('Cannot access preview content');
+      return;
+    }
+
     setIsScanning(true);
-    const newIssues: DesignIssue[] = [];
-    
+    setError(null);
+
     try {
       const doc = iframeRef.current.contentDocument;
       if (!doc) throw new Error('Cannot access iframe content');
 
-      // Check for overlapping elements
-      const elements = Array.from(doc.querySelectorAll('*'));
-      elements.forEach((el) => {
-        const rect = el.getBoundingClientRect();
-        
-        // Check for elements going off screen
-        if (rect.right > window.innerWidth || rect.bottom > window.innerHeight) {
-          newIssues.push({
-            type: 'overflow',
-            title: 'Element Overflow',
-            description: `Element extends beyond viewport bounds`,
-            element: el.tagName.toLowerCase(),
-            bounds: {
-              x: rect.x,
-              y: rect.y,
-              width: rect.width,
-              height: rect.height
-            }
-          });
-        }
-
-        // Check for overlapping elements
-        elements.forEach((other) => {
-          if (el !== other) {
-            const otherRect = other.getBoundingClientRect();
-            if (!(rect.right < otherRect.left || 
-                rect.left > otherRect.right || 
-                rect.bottom < otherRect.top || 
-                rect.top > otherRect.bottom)) {
-              newIssues.push({
-                type: 'overlap',
-                title: 'Overlapping Elements',
-                description: `Elements are overlapping`,
-                element: `${el.tagName.toLowerCase()} overlaps ${other.tagName.toLowerCase()}`,
-                bounds: {
-                  x: Math.max(rect.x, otherRect.x),
-                  y: Math.max(rect.y, otherRect.y),
-                  width: Math.min(rect.right, otherRect.right) - Math.max(rect.left, otherRect.left),
-                  height: Math.min(rect.bottom, otherRect.bottom) - Math.max(rect.top, otherRect.top)
-                }
-              });
-            }
-          }
-        });
-      });
-
-      // Send page content to AI for aesthetic analysis
       const pageContent = doc.documentElement.outerHTML;
+      const viewportWidth = doc.documentElement.clientWidth;
+      const viewportHeight = doc.documentElement.clientHeight;
+
       const response = await apiRequest('POST', '/api/analyze-design', {
         url,
         html: pageContent,
-        viewportWidth: window.innerWidth,
-        viewportHeight: window.innerHeight
+        viewportWidth,
+        viewportHeight
       });
 
-      const aiIssues = await response.json();
-      newIssues.push(...aiIssues);
+      if (!response.ok) {
+        throw new Error('Failed to analyze design');
+      }
 
-      setIssues(newIssues);
-      onIssuesFound(newIssues);
+      const issues = await response.json();
+      setIssues(issues);
+      onIssuesFound(issues);
 
     } catch (error) {
       console.error('Design scan error:', error);
+      setError(error instanceof Error ? error.message : 'Failed to analyze design');
     } finally {
       setIsScanning(false);
     }
@@ -140,6 +103,14 @@ export function DesignScanner({ url, iframeRef, onIssuesFound }: DesignScannerPr
           )}
         </Button>
       </div>
+
+      {error && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Scan Failed</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
 
       <div className="space-y-2">
         {issues.map((issue, index) => (
