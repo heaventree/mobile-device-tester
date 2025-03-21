@@ -457,7 +457,7 @@ Analyze for styling issues. Return JSON only.`
     }
   });
 
-  // New endpoint to generate CSS fixes
+  // Generate CSS fixes endpoint
   app.post("/api/generate-css-fixes", async (req, res) => {
     if (!process.env.OPENAI_API_KEY) {
       return res.status(503).json({
@@ -481,23 +481,23 @@ Analyze for styling issues. Return JSON only.`
 Generate CSS fixes that will be applied through a separate stylesheet to avoid modifying the original site.
 Focus on non-destructive, reversible changes.
 
-Your response should be in this format:
+Return a valid JSON object ONLY with this exact structure:
 {
   "fixes": [
     {
-      "selector": "specific CSS selector",
-      "css": "CSS rules",
-      "description": "What this fix addresses",
-      "impact": "high/medium/low"
+      "selector": "string (specific CSS selector)",
+      "css": "string (CSS rules)",
+      "description": "string (what this fix addresses)",
+      "impact": "string (high/medium/low)"
     }
   ],
   "mediaQueries": [
     {
-      "query": "media query condition",
+      "query": "string (media query condition)",
       "rules": [
         {
-          "selector": "specific CSS selector",
-          "css": "CSS rules"
+          "selector": "string (specific CSS selector)",
+          "css": "string (CSS rules)"
         }
       ]
     }
@@ -514,13 +514,7 @@ Device Type: ${data.deviceInfo.type}
 Issues to fix:
 ${data.issues.map(issue => `- ${issue.type}: ${issue.description}`).join('\n')}
 
-Generate CSS fixes that will resolve these issues while ensuring the changes are:
-1. Non-destructive to the original layout
-2. Specific to the problem areas
-3. Easily reversible
-4. Include appropriate media queries when needed
-
-Respond with a valid JSON object matching the format specified above.`
+Generate CSS fixes that will resolve these issues. Ensure the response is valid JSON matching the specified format.`
         }
       ];
 
@@ -529,7 +523,8 @@ Respond with a valid JSON object matching the format specified above.`
         model: "gpt-4",
         messages,
         temperature: 0.7,
-        max_tokens: 1000
+        max_tokens: 1000,
+        response_format: { type: "json_object" }
       });
 
       const aiResponse = completion.choices[0].message.content;
@@ -537,10 +532,14 @@ Respond with a valid JSON object matching the format specified above.`
 
       let cssFixResponse;
       try {
-        cssFixResponse = JSON.parse(aiResponse || '{}');
+        cssFixResponse = JSON.parse(aiResponse || '{"fixes":[],"mediaQueries":[]}');
+
         // Validate the response structure
         if (!cssFixResponse.fixes || !Array.isArray(cssFixResponse.fixes)) {
           throw new Error('Invalid response format: missing or invalid fixes array');
+        }
+        if (!cssFixResponse.mediaQueries || !Array.isArray(cssFixResponse.mediaQueries)) {
+          cssFixResponse.mediaQueries = [];
         }
       } catch (error) {
         console.error('Failed to parse AI response:', error);
@@ -942,7 +941,7 @@ Return a JSON object with this structure:
       console.error('Error applying WordPress CSS:', error);
       res.status(500).json({
         success: false,
-        message: error instanceof Error ? error.message : 'Failed to apply CSS changes'
+                message: error instanceof Error ? error.message : 'Failed to apply CSS changes'
       });
     }
   });
@@ -998,7 +997,6 @@ Return a JSON object with this structure:
       });
     }
   });
-
 
 
   const httpServer = createServer(app);
